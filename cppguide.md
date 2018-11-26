@@ -109,38 +109,36 @@ The goals of the style guide as we currently see them are as follows:
     often directly risks compromising program correctness.
   - Avoid constructs that our average C++ programmer would find tricky
     or hard to maintain  
-    C++ has features that may not be generally appropriate because of
-    the complexity they introduce to the code. In widely used code, it
-    may be more acceptable to use trickier language constructs, because
-    any benefits of more complex implementation are multiplied widely by
-    usage, and the cost in understanding the complexity does not need to
-    be paid again when working with new portions of the codebase. When
-    in doubt, waivers to rules of this type can be sought by asking your
-    project leads. This is specifically important for our codebase
-    because code ownership and team membership changes over time: even
-    if everyone that works with some piece of code currently understands
-    it, such understanding is not guaranteed to hold a few years from
-    now.
+    C++ has features that may not be generally appropriate because of the
+    complexity they introduce to the code. In widely used code, it may be more
+    acceptable to use trickier language constructs, because any benefits of
+    more complex implementation are multiplied widely by usage, and the cost in
+    understanding the complexity does not need to be paid again when working
+    with new portions of the codebase. When in doubt, waivers to rules of this
+    type can be sought by discussing with the community. This is specifically
+    important for our codebase because code ownership and team membership
+    changes over time: even if everyone that works with some piece of code
+    currently understands it, such understanding is not guaranteed to hold a
+    few years from now.
   - Be mindful of our scale  
-    With a codebase of 100+ million lines and thousands of engineers,
-    some mistakes and simplifications for one engineer can become costly
-    for many. For instance it's particularly important to avoid
-    polluting the global namespace: name collisions across a codebase of
-    hundreds of millions of lines are difficult to work with and hard to
-    avoid if everyone puts things into the global namespace.
+    In a large codebase where developers come and go, some mistakes and
+    simplifications for one engineer can become costly for many. For instance
+    it's particularly important to avoid polluting the global namespace: name
+    collisions across a codebase of hundreds of millions of lines are difficult
+    to work with and hard to avoid if everyone puts things into the global
+    namespace.
   - Concede to optimization when necessary  
     Performance optimizations can sometimes be necessary and
     appropriate, even when they conflict with the other principles of
     this document.
 
-The intent of this document is to provide maximal guidance with
-reasonable restriction. As always, common sense and good taste should
-prevail. By this we specifically refer to the established conventions of
-the entire Google C++ community, not just your personal preferences or
-those of your team. Be skeptical about and reluctant to use clever or
-unusual constructs: the absence of a prohibition is not the same as a
-license to proceed. Use your judgment, and if you are unsure, please
-don't hesitate to ask your project leads to get additional input.
+The intent of this document is to provide maximal guidance with reasonable
+restriction. As always, common sense and good taste should prevail. By this we
+specifically refer to the established conventions of the entire Mono community,
+not just your personal preferences. Be skeptical about and reluctant to use
+clever or unusual constructs: the absence of a prohibition is not the same as a
+license to proceed. Use your judgment, and if you are unsure, please don't
+hesitate to ask the community to get additional input.
 
 </div>
 
@@ -148,7 +146,7 @@ don't hesitate to ask your project leads to get additional input.
 
 Currently, code should target C++11, i.e., should not use C++14 or C++17
 features. The C++ version targeted by this guide will advance
-(aggressively) over time.
+over time.
 
 Code should avoid features that have been removed from the latest
 language version (currently C++17), as well as the rare cases where code
@@ -158,8 +156,8 @@ extensions](#Nonstandard_Extensions).
 
 ## Header Files
 
-In general, every `.cc` file should have an associated `.h` file. There
-are some common exceptions, such as unittests and small `.cc` files
+In general, every `.cpp` file should have an associated `.h` file. There
+are some common exceptions, such as unittests and small `.cpp` files
 containing just a `main()` function.
 
 Correct use of header files can make a huge difference to the
@@ -187,14 +185,13 @@ should not have to adhere to special conditions to include the header.
 Specifically, a header should have [header guards](#The__define_Guard)
 and include all other headers it needs.
 
-Prefer placing the definitions for template and inline functions in the
-same file as their declarations. The definitions of these constructs
-must be included into every `.cc` file that uses them, or the program
-may fail to link in some build configurations. If declarations and
-definitions are in different files, including the former should
-transitively include the latter. Do not move these definitions to
-separately included header files (`-inl.h`); this practice was common in
-the past, but is no longer allowed.
+Prefer placing the definitions for template and inline functions in the same
+file as their declarations. The definitions of these constructs must be
+included into every `.cpp` file that uses them, or the program may fail to link
+in some build configurations. If declarations and definitions are in different
+files, including the former should transitively include the latter. Do not move
+these definitions to separately included header files (`-inl.h`); this practice
+was common in some projects in the past, but is not allowed in Mono.
 
 As an exception, a template that is explicitly instantiated for all
 relevant sets of template arguments, or that is a private implementation
@@ -205,7 +202,7 @@ There are rare cases where a file designed to be included is not
 self-contained. These are typically intended to be included at unusual
 locations, such as the middle of another file. They might not use
 [header guards](#The__define_Guard), and might not include their
-prerequisites. Name such files with the `.inc` extension. Use sparingly,
+prerequisites. Name such files with the `.def` extension. Use sparingly,
 and prefer self-contained headers when possible.
 
 </div>
@@ -216,22 +213,22 @@ and prefer self-contained headers when possible.
 
 All header files should have `#define` guards to prevent multiple
 inclusion. The format of the symbol name should be
-`<PROJECT>_<PATH>_<FILE>_H_`.
+`_MONO_<PATH>_<FILE>_H_`.
 
 </div>
 
 <div class="stylebody">
 
 To guarantee uniqueness, they should be based on the full path in a
-project's source tree. For example, the file `foo/src/bar/baz.h` in
-project `foo` should have the following guard:
+project's source tree. For example, the file `mono/bar/baz.h`
+should have the following guard:
 
-    #ifndef FOO_BAR_BAZ_H_
-    #define FOO_BAR_BAZ_H_
+    #ifndef _MONO_BAR_BAZ_H_
+    #define _MONO_BAR_BAZ_H_
     
     ...
     
-    #endif  // FOO_BAR_BAZ_H_
+    #endif  // _MONO_BAR_BAZ_H_
 
 </div>
 
@@ -286,16 +283,16 @@ template without an associated definition.
           struct B {};
           struct D : B {};
     
-          // good_user.cc:
+          // good_user.cpp:
           #include "b.h"
-          void f(B*);
-          void f(void*);
-          void test(D* x) { f(x); }  // calls f(B*)
+          void f (B*);
+          void f (void*);
+          void test (D* x) { f (x); }  // calls f(B*)
           
     ```
     
     If the `#include` was replaced with forward decls for `B` and `D`,
-    `test()` would call `f(void*)`.
+    `test()` would call `f (void*)`.
 
   - Forward declaring multiple symbols from a header can be more verbose
     than simply `#include`ing the header.
@@ -303,6 +300,9 @@ template without an associated definition.
   - Structuring code to enable forward declarations (e.g. using pointer
     members instead of object members) can make the code slower and more
     complex.
+
+  - *Do* use forward declarations in public API headers for types that must be
+    opaque for the API client.
 
 </div>
 
@@ -318,6 +318,21 @@ Please see [Names and Order of Includes](#Names_and_Order_of_Includes)
 for rules about when to \#include a header.
 
 </div>
+
+</div>
+
+### Public API headers
+
+<div class="summary">
+
+Public API headers must be *C* headers, not *C++*.
+
+</div>
+
+<div class="stylebody">
+
+Mono's public API is C, not C++.  All public API functions must be `extern "C"`
+and must not use references, templates, overloading, namespaces, etc.
 
 </div>
 
@@ -384,50 +399,16 @@ behavior, e.g., for accessors and mutators.
 
 <div class="summary">
 
-Use standard order for readability and to avoid hidden dependencies:
-Related header, C library, C++ library, other libraries' `.h`, your
-project's `.h`.
+C++ files may include C libraries' and C++ libraries' `.h` and your
+project's `.h` headers.
 
 </div>
 
 <div class="stylebody">
 
-All of a project's header files should be listed as descendants of the
-project's source directory without use of UNIX directory shortcuts `.`
-(the current directory) or `..` (the parent directory). For example,
-`google-awesome-project/src/base/logging.h` should be included as:
-
-    #include "base/logging.h"
-
-In `dir/foo.cc` or `dir/foo_test.cc`, whose main purpose is to implement
-or test the stuff in `dir2/foo2.h`, order your includes as follows:
-
-1.  `dir2/foo2.h`.
-2.  A blank line
-3.  C system files.
-4.  C++ system files.
-5.  A blank line
-6.  Other libraries' `.h` files.
-7.  Your project's `.h` files.
-
-Note that any adjacent blank lines should be collapsed.
-
-With the preferred ordering, if `dir2/foo2.h` omits any necessary
-includes, the build of `dir/foo.cc` or `dir/foo_test.cc` will break.
-Thus, this rule ensures that build breaks show up first for the people
-working on these files, not for innocent people in other packages.
-
-`dir/foo.cc` and `dir2/foo2.h` are usually in the same directory (e.g.
-`base/basictypes_test.cc` and `base/basictypes.h`), but may sometimes be
-in different directories too.
-
 Note that the C compatibility headers such as `stddef.h` are essentially
 interchangeable with their C++ counterparts (`cstddef`) Either style is
 acceptable, but prefer consistency with existing code.
-
-Within each section the includes should be ordered alphabetically. Note
-that older code might not conform to this rule and should be fixed when
-convenient.
 
 You should include all the headers that define the symbols you rely
 upon, except in the unusual case of [forward
@@ -436,34 +417,8 @@ declaration](#Forward_Declarations). If you rely on symbols from
 (currently) includes `bar.h`: include `bar.h` yourself, unless `foo.h`
 explicitly demonstrates its intent to provide you the symbols of
 `bar.h`. However, any includes present in the related header do not need
-to be included again in the related `cc` (i.e., `foo.cc` can rely on
+to be included again in the related `cpp` (i.e., `foo.cpp` can rely on
 `foo.h`'s includes).
-
-For example, the includes in
-`google-awesome-project/src/foo/internal/fooserver.cc` might look like
-this:
-
-    #include "foo/server/fooserver.h"
-    
-    #include <sys/types.h>
-    #include <unistd.h>
-    #include <vector>
-    
-    #include "base/basictypes.h"
-    #include "base/commandlineflags.h"
-    #include "foo/server/bar.h"
-
-Sometimes, system-specific code needs conditional includes. Such code
-can put conditional includes after other includes. Of course, keep your
-system-specific code small and localized. Example:
-
-    #include "foo/public/fooserver.h"
-    
-    #include "base/port.h"  // For LANG_CXX11.
-    
-    #ifdef LANG_CXX11
-    #include <initializer_list>
-    #endif  // LANG_CXX11
 
 </div>
 
@@ -540,10 +495,10 @@ Namespaces should be used as follows:
 
   - Terminate namespaces with comments as shown in the given examples.
 
-  - Namespaces wrap the entire source file after includes,
-    [gflags](https://gflags.github.io/gflags/) definitions/declarations
-    and forward declarations of classes from other namespaces.
-    
+  - Namespaces wrap the entire source file after includes, and forward
+    declarations of classes from other namespaces, except for definitions of
+    `extern "C"` functions` which will generally follow after the namespace.
+
         // In the .h file
         namespace mynamespace {
         
@@ -557,7 +512,7 @@ Namespaces should be used as follows:
         
         }  // namespace mynamespace
     
-        // In the .cc file
+        // In the .cpp file
         namespace mynamespace {
         
         // Definition of functions is within scope of the namespace.
@@ -567,12 +522,10 @@ Namespaces should be used as follows:
         
         }  // namespace mynamespace
     
-    More complex `.cc` files might have additional details, like flags
-    or using-declarations.
+    More complex `.cpp` files might have additional details, like
+    using-declarations.
     
         #include "a.h"
-        
-        DEFINE_FLAG(bool, someflag, false, "dummy flag");
         
         namespace mynamespace {
         
@@ -581,11 +534,6 @@ Namespaces should be used as follows:
         ...code for mynamespace...    // Code goes against the left margin.
         
         }  // namespace mynamespace
-
-  - To place generated protocol message code in a namespace, use the
-    `package` specifier in the `.proto` file. See [Protocol Buffer
-    Packages](https://developers.google.com/protocol-buffers/docs/reference/cpp-generated#package)
-    for details.
 
   - Do not declare anything in namespace `std`, including forward
     declarations of standard library classes. Declaring entities in
@@ -632,7 +580,7 @@ Namespaces should be used as follows:
 
 <div class="summary">
 
-When definitions in a `.cc` file do not need to be referenced outside
+When definitions in a `.cpp` file do not need to be referenced outside
 that file, place them in an unnamed namespace or declare them `static`.
 Do not use either of these constructs in `.h` files.
 
@@ -653,7 +601,7 @@ completely independent.
 
 <div class="decision">
 
-Use of internal linkage in `.cc` files is encouraged for all code that
+Use of internal linkage in `.cpp` files is encouraged for all code that
 does not need to be referenced elsewhere. Do not use internal linkage in
 `.h` files.
 
@@ -735,24 +683,23 @@ declaration and assignment, e.g.:
 
 ``` badcode
 int i;
-i = f();      // Bad -- initialization separate from declaration.
+i = f ();      // Bad -- initialization separate from declaration.
 ```
 
-    int j = g();  // Good -- declaration has initialization.
+    int j = g ();  // Good -- declaration has initialization.
 
 ``` badcode
-std::vector<int> v;
-v.push_back(1);  // Prefer initializing using brace initialization.
-v.push_back(2);
+std::unique_ptr<int, g_free_deleter> u;
+u.reset (g_getenv ("HOME"));  // Prefer initializing using brace initialization.
 ```
 
-    std::vector<int> v = {1, 2};  // Good -- v starts initialized.
+    std::vector<int, g_free_deleter> u = {g_getenv ("HOME")};  // Good -- u starts initialized.
 
 Variables needed for `if`, `while` and `for` statements should normally
 be declared within those statements, so that such variables are confined
 to those scopes. E.g.:
 
-    while (const char* p = strchr(str, '/')) str = p + 1;
+    while (const char* p = strchr (str, '/')) str = p + 1;
 
 There is one caveat: if the variable is an object, its constructor is
 invoked every time it enters scope and is created, and its destructor is
@@ -762,7 +709,7 @@ invoked every time it goes out of scope.
 // Inefficient implementation:
 for (int i = 0; i < 1000000; ++i) {
   Foo f;  // My ctor and dtor get called 1000000 times each.
-  f.DoSomething(i);
+  f.DoSomething (i);
 }
 ```
 
@@ -771,7 +718,7 @@ outside that loop:
 
     Foo f;  // My ctor and dtor get called once each.
     for (int i = 0; i < 1000000; ++i) {
-      f.DoSomething(i);
+      f.DoSomething (i);
     }
 
 </div>
