@@ -1,6 +1,6 @@
 <div id="content">
 
-# Google C++ Style Guide
+# Mono C++ Style Guide
 
 <div id="tocDiv" class="horizontal_toc">
 
@@ -8,12 +8,21 @@
 
 <div class="main_body">
 
+## Attribution
+
+This work, “Mono C++ Coding Guide”, is a derivative of the [Google C++ Style
+Guide](https://google.github.io/styleguide/) by Google, used under [CC BY
+3.0](https://creativecommons.org/licenses/by/3.0/).  See
+[Legal](/about-mono/legal) for this document's license.
+
 ## Background
 
-C++ is one of the main development languages used by many of Google's
-open-source projects. As every C++ programmer knows, the language has
-many powerful features, but this power brings with it complexity, which
-in turn can make code more bug-prone and harder to read and maintain.
+Mono has used C99 as its main native development language for many years. The
+transition to a purely C++ codebase is not complete, and it will take many
+releases. The great fiction of C++ is that it is merely *C with objects*.  As
+every C++ programmer knows, the language has many powerful features, but this
+power brings with it complexity, which in turn can make code more bug-prone and
+harder to read and maintain.
 
 The goal of this guide is to manage this complexity by describing in
 detail the dos and don'ts of writing C++ code. These rules exist to keep
