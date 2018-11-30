@@ -942,12 +942,7 @@ common).
 
 <div class="summary">
 
-`thread_local` variables that aren't declared inside a function must be
-initialized with a true compile-time constant, and this must be enforced
-by using the
-[`ABSL_CONST_INIT`](https://github.com/abseil/abseil-cpp/blob/master/absl/base/attributes.h)
-attribute. Prefer `thread_local` over other ways of defining
-thread-local data.
+`thread_local` variables that aren't declared inside a function are not allowed in Mono.
 
 </div>
 
@@ -1018,17 +1013,7 @@ function-scope `thread_local` to simulate a class- or namespace-scope
       return result;
     }
 
-`thread_local` variables at class or namespace scope must be initialized
-with a true compile-time constant (i.e. they must have no dynamic
-initialization). To enforce this, `thread_local` variables at class or
-namespace scope must be annotated with
-[`ABSL_CONST_INIT`](https://github.com/abseil/abseil-cpp/blob/master/absl/base/attributes.h)
-(or `constexpr`, but that should be rare):
-
-    ABSL_CONST_INIT thread_local Foo foo = ...;
-
-`thread_local` should be preferred over other mechanisms for defining
-thread-local data.
+`thread_local` variables at class or namespace scope are not allowed in Mono.
 
 </div>
 
