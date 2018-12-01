@@ -1029,8 +1029,8 @@ follow when writing a class.
 
 <div class="summary">
 
-Avoid virtual method calls in constructors, and avoid initialization
-that can fail if you can't signal an error.
+Avoid virtual method calls in constructors, and avoid initialization that can
+fail if your class doesn't have a natural failure state.
 
 </div>
 
@@ -1177,8 +1177,7 @@ single argument, must be marked `explicit` in the class definition. As
 an exception, copy and move constructors should not be `explicit`, since
 they do not perform type conversion. Implicit conversions can sometimes
 be necessary and appropriate for types that are designed to
-transparently wrap other types. In that case, contact your project leads
-to request a waiver of this rule.
+transparently wrap other types.
 
 Constructors that cannot be called with a single argument may omit
 `explicit`. Constructors that take a single `std::initializer_list`
@@ -1549,7 +1548,7 @@ For example, use `|` as a bitwise- or logical-or, not as a shell-style
 pipe.
 
 Define operators only on your own types. More precisely, define them in
-the same headers, .cc files, and namespaces as the types they operate
+the same headers, .cpp files, and namespaces as the types they operate
 on. That way, the operators are available wherever the type is,
 minimizing the risk of multiple definitions. If possible, avoid defining
 operators as templates, because they must satisfy this rule for any
@@ -1591,14 +1590,6 @@ apply to operator overloading as well.
 
 Make classes' data members `private`, unless they are `static const`
 (and follow the [naming convention for constants](#Constant_Names)).
-
-</div>
-
-<div class="stylebody">
-
-For technical reasons, we allow data members of a test fixture class in
-a .cc file to be `protected` when using [Google
-Test](https://github.com/google/googletest)).
 
 </div>
 
