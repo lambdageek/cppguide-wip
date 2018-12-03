@@ -1973,13 +1973,7 @@ cases](#Template_metaprogramming).
 
 </div>
 
-## Google-Specific Magic
-
-There are various tricks and utilities that we use to make C++ code more
-robust, and various ways we use C++ that may differ from what you see
-elsewhere.
-
-### Ownership and Smart Pointers
+## Ownership and Smart Pointers
 
 <div class="summary">
 
@@ -2082,30 +2076,6 @@ you do use shared ownership, prefer to use `std::shared_ptr`.
 Never use `std::auto_ptr`. Instead, use `std::unique_ptr`.
 
 </div>
-
-</div>
-
-### cpplint
-
-<div class="summary">
-
-Use `cpplint.py` to detect style errors.
-
-</div>
-
-<div class="stylebody">
-
-`cpplint.py` is a tool that reads a source file and identifies many
-style errors. It is not perfect, and has both false positives and false
-negatives, but it is still a valuable tool. False positives can be
-ignored by putting `// NOLINT` at the end of the line or `//
-NOLINTNEXTLINE` in the previous line.
-
-Some projects have instructions on how to run `cpplint.py` from their
-project tools. If the project you are contributing to does not, you can
-download
-[`cpplint.py`](https://raw.githubusercontent.com/google/styleguide/gh-pages/cpplint/cpplint.py)
-separately.
 
 </div>
 
