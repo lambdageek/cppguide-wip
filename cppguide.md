@@ -1822,6 +1822,10 @@ the set is being called. If you can document all entries in the overload
 set with a single comment in the header, that is a good sign that it is
 a well-designed overload set.
 
+Please consider "overload sets" as the basic unit of C++ API design.  See
+https://youtu.be/xTdeZ4MxbKo?t=240 (starting at the 4min mark).
+https://github.com/CppCon/CppCon2018/blob/master/Presentations/modern_cpp_api_design_pt_1/modern_cpp_api_design_pt_1__titus_winters__cppcon_2018.pdf
+
 </div>
 
 </div>
