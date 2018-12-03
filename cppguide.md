@@ -2260,6 +2260,12 @@ We do not use C++ exceptions.
     not safe to do so. For example, invalid user input should not cause
     exceptions to be thrown. We would need to make the style guide even
     longer to document these restrictions\!
+  - Exceptions require linking the final executable with the C++ runtime
+    library, which complicates linking on some platforms that Mono targets.
+  - Exceptions require an unwinding mechanism that may interact poorly with
+    Mono's support for unwinding managed code.  If a C++ exception propagates
+    to managed code, all the managed frames will be unwound without running
+    managed catch clauses, for example.
 
 </div>
 
