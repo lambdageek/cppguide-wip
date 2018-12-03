@@ -1724,7 +1724,7 @@ semantics.
 
 Within function parameter lists all references must be `const`:
 
-    void Foo(const string &in, string *out);
+    void Foo(const C &in, D *out);
 
 In fact it is a very strong convention in Google code that input
 arguments are values or `const` references while output arguments are
@@ -1744,6 +1744,22 @@ reader that the input is somehow treated differently. So if you choose
 `const T*` rather than `const T&`, do so for a concrete reason;
 otherwise it will likely confuse readers by making them look for an
 explanation that doesn't exist.
+
+An alternative is to declare a function that takes a `std::reference_wrapper<T>` as an argument.
+
+    void Foo (const C &in, std::reference_wrapper<D> out);
+
+Which may be called using `std::ref<>()` as an argument:
+
+    void FooCaller () {
+	    using std::ref;
+        C c;
+		D d;
+		Foo (c, ref (d)); // note that B may be modified.
+	}
+
+The advantage of using `std::reference_wrapper` is that a null reference cannot
+be passed to the callee.
 
 </div>
 
