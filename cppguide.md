@@ -153,7 +153,7 @@ extensions](#Nonstandard_Extensions).
 
 ## Header Files
 
-In general, every `.cpp` file should have an associated `.h` file. There
+In general, every `.cpp` file should have an associated `.hpp` file. There
 are some common exceptions, such as unittests and small `.cpp` files
 containing just a `main()` function.
 
@@ -170,7 +170,8 @@ header files.
 <div class="summary">
 
 Header files should be self-contained (compile on their own) and end in
-`.h`. Non-header files that are meant for inclusion should end in `.inc`
+`.hpp` if they are C++ only, or `.h` if they are also to be used from C.
+Non-header files that are meant for inclusion should end in `.inc` or `.def`
 and be used sparingly.
 
 </div>
@@ -192,7 +193,7 @@ was common in some projects in the past, but is not allowed in Mono.
 
 As an exception, a template that is explicitly instantiated for all
 relevant sets of template arguments, or that is a private implementation
-detail of a class, is allowed to be defined in the one and only `.cc`
+detail of a class, is allowed to be defined in the one and only `.cpp`
 file that instantiates the template.
 
 There are rare cases where a file designed to be included is not
@@ -276,12 +277,12 @@ template without an associated definition.
     declaration can silently change the meaning of code:
     
     ``` 
-          // b.h:
+          // b.hpp:
           struct B {};
           struct D : B {};
     
           // good_user.cpp:
-          #include "b.h"
+          #include "b.hpp"
           void f (B*);
           void f (void*);
           void test (D* x) { f (x); }  // calls f(B*)
@@ -496,39 +497,40 @@ Namespaces should be used as follows:
     declarations of classes from other namespaces, except for definitions of
     `extern "C"` functions` which will generally follow after the namespace.
 
-        // In the .h file
+        // In the .hpp file
         namespace mynamespace {
         
-        // All declarations are within the namespace scope.
-        // Notice the lack of indentation.
-        class MyClass {
-         public:
-          ...
-          void Foo();
-        };
+        	// All declarations are within the namespace scope.
+        	class MyClass {
+         	public:
+          		...
+        		void
+				Foo ();
+        	};
         
         }  // namespace mynamespace
     
         // In the .cpp file
         namespace mynamespace {
         
-        // Definition of functions is within scope of the namespace.
-        void MyClass::Foo() {
-          ...
-        }
+        	// Definition of functions is within scope of the namespace.
+        	void
+			MyClass::Foo() {
+          	...
+        	}
         
         }  // namespace mynamespace
     
     More complex `.cpp` files might have additional details, like
     using-declarations.
     
-        #include "a.h"
+        #include "a.hpp"
         
         namespace mynamespace {
         
-        using ::foo::bar;
+        	using ::foo::bar;
         
-        ...code for mynamespace...    // Code goes against the left margin.
+        	...code for mynamespace...
         
         }  // namespace mynamespace
 
@@ -551,20 +553,22 @@ Namespaces should be used as follows:
     anything imported into a namespace in a header file becomes part of
     the public API exported by that file.
     
-        // Shorten access to some commonly used names in .cc files.
+        // Shorten access to some commonly used names in .cpp files.
         namespace baz = ::foo::bar::baz;
     
         // Shorten access to some commonly used names (in a .h file).
         namespace librarian {
-        namespace impl {  // Internal, not part of the API.
-        namespace sidetable = ::pipeline_diagnostics::sidetable;
-        }  // namespace impl
+        	namespace impl {  // Internal, not part of the API.
+        		namespace sidetable = ::pipeline_diagnostics::sidetable;
+        	}  // namespace impl
         
-        inline void my_inline_function() {
-          // namespace alias local to a function (or method).
-          namespace baz = ::foo::bar::baz;
-          ...
-        }
+        	inline void
+			my_inline_function ()
+			{
+          		// namespace alias local to a function (or method).
+          		namespace baz = ::foo::bar::baz;
+          		...
+        	}
         }  // namespace librarian
 
   - Do not use inline namespaces.
@@ -579,7 +583,7 @@ Namespaces should be used as follows:
 
 When definitions in a `.cpp` file do not need to be referenced outside
 that file, place them in an unnamed namespace or declare them `static`.
-Do not use either of these constructs in `.h` files.
+Do not use either of these constructs in `.hpp` files.
 
 </div>
 
@@ -600,7 +604,7 @@ completely independent.
 
 Use of internal linkage in `.cpp` files is encouraged for all code that
 does not need to be referenced elsewhere. Do not use internal linkage in
-`.h` files.
+`.hpp` files.
 
 Format unnamed namespaces like named namespaces. In the terminating
 comment, leave the namespace name empty:
@@ -652,7 +656,7 @@ only to group static member functions; this is no different than just
 giving the function names a common prefix, and such grouping is usually
 unnecessary anyway.
 
-If you define a nonmember function and it is only needed in its `.cc`
+If you define a nonmember function and it is only needed in its `.cpp`
 file, use [internal linkage](#Unnamed_Namespaces_and_Static_Variables)
 to limit its scope.
 
@@ -832,26 +836,28 @@ variables marked with `constexpr` are trivially destructible.
     const int kNum = 10;  // allowed
     
     struct X { int n; };
-    const X kX[] = {{1}, {2}, {3}};  // allowed
+    const X Xs[] = {{1}, {2}, {3}};  // allowed
     
-    void foo() {
-      static const char* const kMessages[] = {"hello", "world"};  // allowed
+    void foo()
+	{
+    	static const char* const Messages[] = {"hello", "world"};  // allowed
     }
     
     // allowed: constexpr guarantees trivial destructor
-    constexpr std::array<int, 3> kArray = {{1, 2, 3}};
+    constexpr std::array<int, 3> Array = {{1, 2, 3}};
 
 ``` badcode
 // bad: non-trivial destructor
-const string kFoo = "foo";
+const string Foo = "foo";
 
 // bad for the same reason, even though kBar is a reference (the
 // rule also applies to lifetime-extended temporary objects)
-const string& kBar = StrCat("a", "b", "c");
+const string& Bar = StrCat("a", "b", "c");
 
-void bar() {
+void bar()
+{
   // bad: non-trivial destructor
-  static std::map<int, int> kData = {{1, 0}, {2, 0}, {3, 0}};
+  static std::map<int, int> Data = {{1, 0}, {2, 0}, {3, 0}};
 }
 ```
 
@@ -868,9 +874,9 @@ the evaluation of the initializer:
 
 ``` neutralcode
 int n = 5;    // fine
-int m = f();  // ? (depends on f)
+int m = f ();  // ? (depends on f)
 Foo x;        // ? (depends on Foo::Foo)
-Bar y = g();  // ? (depends on g and on Bar::Bar)
+Bar y = g ();  // ? (depends on g and on Bar::Bar)
 ```
 
 All but the first statement expose us to indeterminate initialization
@@ -882,17 +888,15 @@ expression is a constant expression, and if the object is initialized by
 a constructor call, then the constructor must be specified as
 `constexpr`, too:
 
-    struct Foo { constexpr Foo(int) {} };
+    struct Foo { constexpr Foo (int) {} };
     
     int n = 5;  // fine, 5 is a constant expression
     Foo x(2);   // fine, 2 is a constant expression and the chosen constructor is constexpr
     Foo a[] = { Foo(1), Foo(2), Foo(3) };  // fine
 
 Constant initialization is always allowed. Constant initialization of
-static storage duration variables should be marked with `constexpr` or
-where possible the
-[`ABSL_CONST_INIT`](https://github.com/abseil/abseil-cpp/blob/03c1513538584f4a04d666be5eb469e3979febba/absl/base/attributes.h#L540)
-attribute. Any non-local static storage duration variable that is not so
+static storage duration variables should be marked with `constexpr`.
+Any non-local static storage duration variable that is not so
 marked should be presumed to have dynamic initialization, and reviewed
 very carefully.
 
@@ -900,13 +904,15 @@ By contrast, the following initializations are problematic:
 
 ``` badcode
 // Some declarations used below.
-time_t time(time_t*);      // not constexpr!
-int f();                   // not constexpr!
-struct Bar { Bar() {} };
+time_t
+time (time_t*);      // not constexpr!
+int
+f ();                   // not constexpr!
+struct Bar { Bar () {} };
 
 // Problematic initializations.
-time_t m = time(nullptr);  // initializing expression not a constant expression
-Foo y(f());                // ditto
+time_t m = time (nullptr);  // initializing expression not a constant expression
+Foo y(f ());                // ditto
 Bar b;                     // chosen constructor Bar::Bar() not constexpr
 ```
 
@@ -916,8 +922,8 @@ program depends on the sequencing of this initialization with respect to
 all other initializations. Under those restrictions, the ordering of the
 initialization does not make an observable difference. For example:
 
-    int p = getpid();  // allowed, as long as no other static variable
-                       // uses p in its own initialization
+    int p = getpid ();  // allowed, as long as no other static variable
+                        // uses p in its own initialization
 
 Dynamic initialization of static local variables is allowed (and
 common).
