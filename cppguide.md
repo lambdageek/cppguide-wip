@@ -718,6 +718,29 @@ outside that loop:
       f.DoSomething (i);
     }
 
+Existing code using `goto` sometimes has variable declarations without
+initialization.  If possible, rewrite such code to eliminate the goto.
+Otherwise, do not allow a goto to enter the scope of a variable with a
+non-trivial default constructor.
+
+``` badcode
+class C {
+public:
+  C ()
+  {
+     ... // nontrivial
+  }
+}
+
+// later in some function
+
+	{
+		if (cond)
+			goto done;
+		C c; // BAD goto past variable with non-trivial default constructor
+	done:
+		...
+	}
 </div>
 
 ### Static and Global Variables
