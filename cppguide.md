@@ -33,9 +33,6 @@ features productively.
 govern our C++ code. The term Style is a bit of a misnomer, since these
 conventions cover far more than just source file formatting.
 
-Most open-source projects developed by Google conform to the
-requirements in this guide.
-
 Note that this guide is not a C++ tutorial: we assume that the reader is
 familiar with the language.
 
@@ -1328,7 +1325,7 @@ for example, if a base class isn't copyable or movable, derived classes
 naturally won't be either. Similarly, a [struct](#Structs_vs._Classes)'s
 copyability/movability is normally determined by the
 copyability/movability of its data members (this does not apply to
-classes because in Google code their data members are not public). Note
+classes because in classes data members shoudl not be public). Note
 that if you explicitly declare or delete any of the copy/move
 operations, the others are not obvious, and so this paragraph does not
 apply (in particular, the rules in this section that apply to "classes"
@@ -1724,13 +1721,13 @@ semantics.
 
 Within function parameter lists all references must be `const`:
 
-    void Foo(const C &in, D *out);
+    void Foo (const C& in, D *out);
 
-In fact it is a very strong convention in Google code that input
-arguments are values or `const` references while output arguments are
-pointers. Input parameters may be `const` pointers, but we never allow
-non-`const` reference parameters except when required by convention,
-e.g., `swap()`.
+A good convention to follow is that input arguments are values or `const`
+references while output arguments are pointers or
+`std::reference_wrapper<T>`. Input parameters may be `const` pointers, but we
+never allow non-`const` reference parameters except when required by
+convention, e.g., `swap ()`.
 
 However, there are some instances where using `const T*` is preferable
 to `const T&` for input parameters. For example:
@@ -1755,11 +1752,12 @@ Which may be called using `std::ref<>()` as an argument:
 	    using std::ref;
         C c;
 		D d;
-		Foo (c, ref (d)); // note that B may be modified.
+		Foo (c, ref (d)); // note that d may be modified.
 	}
 
-The advantage of using `std::reference_wrapper` is that a null reference cannot
-be passed to the callee.
+The advantage of using `std::reference_wrapper<>` is that a null reference
+cannot be passed to the callee, while it is obviious to the caller that
+something special is happening.
 
 </div>
 
@@ -2276,22 +2274,15 @@ especially in new projects. However, for existing code, the introduction
 of exceptions has implications on all dependent code. If exceptions can
 be propagated beyond a new project, it also becomes problematic to
 integrate the new project into existing exception-free code. Because
-most existing C++ code at Google is not prepared to deal with
+most existing C/C++ code in Mono is not prepared to deal with
 exceptions, it is comparatively difficult to adopt new code that
 generates exceptions.
 
-Given that Google's existing code is not exception-tolerant, the costs
+Given that Mono's existing code is not exception-tolerant, the costs
 of using exceptions are somewhat greater than the costs in a new
 project. The conversion process would be slow and error-prone. We don't
 believe that the available alternatives to exceptions, such as error
 codes and assertions, introduce a significant burden.
-
-Our advice against using exceptions is not predicated on philosophical
-or moral grounds, but practical ones. Because we'd like to use our
-open-source projects at Google and it's difficult to do so if those
-projects use exceptions, we need to advise against exceptions in Google
-open-source projects as well. Things would probably be different if we
-had to do it all over again from scratch.
 
 This prohibition also applies to the exception handling related features
 added in C++11, such as `std::exception_ptr` and
@@ -2360,13 +2351,13 @@ significant performance benefit from specifying `noexcept` on some other
 function, please discuss it with your project leads.
 
 Prefer unconditional `noexcept` if exceptions are completely disabled
-(i.e. most Google C++ environments). Otherwise, use conditional
+(i.e. most Mono environments). Otherwise, use conditional
 `noexcept` specifiers with simple conditions, in ways that evaluate
 false only in the few cases where the function could potentially throw.
 The tests might include type traits check on whether the involved
 operation might throw (e.g. `std::is_nothrow_move_constructible` for
 move-constructing objects), or on whether allocation can throw (e.g.
-`absl::default_allocator_is_nothrow` for standard default allocation).
+for standard default allocation).
 Note in many cases the only possible cause for an exception is
 allocation failure (we believe move constructors should not throw except
 due to allocation failure), and there are many applications where it’s
@@ -2387,7 +2378,7 @@ unconditionally `noexcept`.
 
 <div class="summary">
 
-Avoid using Run Time Type Information (RTTI).
+Do not use Run Time Type Information (RTTI).
 
 </div>
 
@@ -2396,7 +2387,7 @@ Avoid using Run Time Type Information (RTTI).
 <div class="definition">
 
 RTTI allows a programmer to query the C++ class of an object at run
-time. This is done by use of `typeid` or `dynamic_cast`.
+pptime. This is done by use of `typeid` or `dynamic_cast`.
 
 </div>
 
@@ -2409,6 +2400,9 @@ indication that the design of your class hierarchy is flawed.
 Undisciplined use of RTTI makes code hard to maintain. It can lead to
 type-based decision trees or switch statements scattered throughout the
 code, all of which must be examined when making further changes.
+
+On some platforms where Mono is used (notably Android), the default behavior is
+to compile without RTTI.
 
 </div>
 
@@ -2489,8 +2483,8 @@ tags. Moreover, workarounds disguise your true intent.
 
 Use C++-style casts like `static_cast<float>(double_value)`, or brace
 initialization for conversion of arithmetic types like `int64 y =
-int64{1} << 42`. Do not use cast formats like `int y = (int)x` or `int y
-= int(x)` (but the latter is okay when invoking a constructor of a class
+int64{1} << 42`. Avoid cast formats like `int y = (int)x` or `int y
+= int(x)` in new code. (But the latter is okay when invoking a constructor of a class
 type).
 
 </div>
@@ -2551,9 +2545,7 @@ on the use of `dynamic_cast`.
 
 <div class="summary">
 
-Use streams where appropriate, and stick to "simple" usages. Overload
-`<<` for streaming only for types representing values, and write only
-the user-visible value, not any implementation details.
+Do not use streams.
 
 </div>
 
@@ -2561,9 +2553,9 @@ the user-visible value, not any implementation details.
 
 <div class="definition">
 
-Streams are the standard I/O abstraction in C++, as exemplified by the
-standard header `<iostream>`. They are widely used in Google code, but
-only for debug logging and test diagnostics.
+On many platforms, streams require the C++ runtime library.  In many
+configurations, Mono does not link with a C++ runtime library at all.
+Use C-style I/O.
 
 </div>
 
@@ -2604,37 +2596,14 @@ are hampered by the need to manually buffer the input.
   - Resolving the many overloads of `<<` is extremely costly for the
     compiler. When used pervasively in a large code base, it can consume
     as much as 20% of the parsing and semantic analysis time.
+  - On many platforms, Mono is configured not to use the C++ runtime library,
+    where streams implementations reside.
 
 </div>
 
 <div class="decision">
 
-Use streams only when they are the best tool for the job. This is
-typically the case when the I/O is ad-hoc, local, human-readable, and
-targeted at other developers rather than end-users. Be consistent with
-the code around you, and with the codebase as a whole; if there's an
-established tool for your problem, use that tool instead. In particular,
-logging libraries are usually a better choice than `std::cerr` or
-`std::clog` for diagnostic output, and the libraries in `absl/strings`
-or the equivalent are usually a better choice than `std::stringstream`.
-
-Avoid using streams for I/O that faces external users or handles
-untrusted data. Instead, find and use the appropriate templating
-libraries to handle issues like internationalization, localization, and
-security hardening.
-
-If you do use streams, avoid the stateful parts of the streams API
-(other than error state), such as `imbue()`, `xalloc()`, and
-`register_callback()`. Use explicit formatting functions (see e.g.
-`absl/strings`) rather than stream manipulators or formatting flags to
-control formatting details such as number base, precision, or padding.
-
-Overload `<<` as a streaming operator for your type only if your type
-represents a value, and `<<` writes out a human-readable string
-representation of that value. Avoid exposing implementation details in
-the output of `<<`; if you need to print object internals for debugging,
-use named functions instead (a method named `DebugString()` is the most
-common convention).
+Do not use streams.
 
 </div>
 
@@ -2696,6 +2665,11 @@ pre-increment.
 
 Use `const` whenever it makes sense. With C++11, `constexpr` is a better
 choice for some uses of const.
+
+When interfacing with existing `const`-unware code (historically C code), be
+pragmatic about using `const_cast<>` to cast constness away vs propagating
+`const` into the implementation.  For new `const`-aware C++ code, avoid using
+`const_cast<>` to subvert the type system.
 
 </div>
 
@@ -2825,153 +2799,6 @@ Do not use `constexpr` to force inlining.
 
 </div>
 
-### Integer Types
-
-<div class="summary">
-
-Of the built-in C++ integer types, the only one used is `int`. If a
-program needs a variable of a different size, use a precise-width
-integer type from `<stdint.h>`, such as `int16_t`. If your variable
-represents a value that could ever be greater than or equal to 2^31
-(2GiB), use a 64-bit type such as `int64_t`. Keep in mind that even if
-your value won't ever be too large for an `int`, it may be used in
-intermediate calculations which may require a larger type. When in
-doubt, choose a larger type.
-
-</div>
-
-<div class="stylebody">
-
-<div class="definition">
-
-C++ does not specify the sizes of integer types like `int`. Typically
-people assume that `short` is 16 bits, `int` is 32 bits, `long` is 32
-bits and `long long` is 64 bits.
-
-</div>
-
-<div class="pros">
-
-Uniformity of declaration.
-
-</div>
-
-<div class="cons">
-
-The sizes of integral types in C++ can vary based on compiler and
-architecture.
-
-</div>
-
-<div class="decision">
-
-`<stdint.h>` defines types like `int16_t`, `uint32_t`, `int64_t`, etc.
-You should always use those in preference to `short`, `unsigned long
-long` and the like, when you need a guarantee on the size of an integer.
-Of the C integer types, only `int` should be used. When appropriate, you
-are welcome to use standard types like `size_t` and `ptrdiff_t`.
-
-We use `int` very often, for integers we know are not going to be too
-big, e.g., loop counters. Use plain old `int` for such things. You
-should assume that an `int` is at least 32 bits, but don't assume that
-it has more than 32 bits. If you need a 64-bit integer type, use
-`int64_t` or `uint64_t`.
-
-For integers we know can be "big", use `int64_t`.
-
-You should not use the unsigned integer types such as `uint32_t`, unless
-there is a valid reason such as representing a bit pattern rather than a
-number, or you need defined overflow modulo 2^N. In particular, do not
-use unsigned types to say a number will never be negative. Instead, use
-assertions for this.
-
-If your code is a container that returns a size, be sure to use a type
-that will accommodate any possible usage of your container. When in
-doubt, use a larger type rather than a smaller type.
-
-Use care when converting integer types. Integer conversions and
-promotions can cause undefined behavior, leading to security bugs and
-other problems.
-
-</div>
-
-<div class="stylepoint_subsection">
-
-#### On Unsigned Integers
-
-Unsigned integers are good for representing bitfields and modular
-arithmetic. Because of historical accident, the C++ standard also uses
-unsigned integers to represent the size of containers - many members of
-the standards body believe this to be a mistake, but it is effectively
-impossible to fix at this point. The fact that unsigned arithmetic
-doesn't model the behavior of a simple integer, but is instead defined
-by the standard to model modular arithmetic (wrapping around on
-overflow/underflow), means that a significant class of bugs cannot be
-diagnosed by the compiler. In other cases, the defined behavior impedes
-optimization.
-
-That said, mixing signedness of integer types is responsible for an
-equally large class of problems. The best advice we can provide: try to
-use iterators and containers rather than pointers and sizes, try not to
-mix signedness, and try to avoid unsigned types (except for representing
-bitfields or modular arithmetic). Do not use an unsigned type merely to
-assert that a variable is non-negative.
-
-</div>
-
-</div>
-
-### 64-bit Portability
-
-<div class="summary">
-
-Code should be 64-bit and 32-bit friendly. Bear in mind problems of
-printing, comparisons, and structure alignment.
-
-</div>
-
-<div class="stylebody">
-
-  - Correct portable `printf()` conversion specifiers for some integral
-    typedefs rely on macro expansions that we find unpleasant to use and
-    impractical to require (the `PRI` macros from `<cinttypes>`). Unless
-    there is no reasonable alternative for your particular case, try to
-    avoid or even upgrade APIs that rely on the `printf` family. Instead
-    use a library supporting typesafe numeric formatting, such as
-    [`StrCat`](https://github.com/abseil/abseil-cpp/blob/master/absl/strings/str_cat.h)
-    or
-    [`Substitute`](https://github.com/abseil/abseil-cpp/blob/master/absl/strings/substitute.h)
-    for fast simple conversions, or [`std::ostream`](#Streams).
-    
-    Unfortunately, the `PRI` macros are the only portable way to specify
-    a conversion for the standard bitwidth typedefs (e.g. `int64_t`,
-    `uint64_t`, `int32_t`, `uint32_t`, etc). Where possible, avoid
-    passing arguments of types specified by bitwidth typedefs to
-    `printf`-based APIs. Note that it is acceptable to use typedefs for
-    which printf has dedicated length modifiers, such as `size_t` (`z`),
-    `ptrdiff_t` (`t`), and `maxint_t` (`j`).
-
-  - Remember that `sizeof(void *)` \!= `sizeof(int)`. Use `intptr_t` if
-    you want a pointer-sized integer.
-
-  - You may need to be careful with structure alignments, particularly
-    for structures being stored on disk. Any class/structure with a
-    `int64_t`/`uint64_t` member will by default end up being 8-byte
-    aligned on a 64-bit system. If you have such structures being shared
-    on disk between 32-bit and 64-bit code, you will need to ensure that
-    they are packed the same on both architectures. Most compilers offer
-    a way to alter structure alignment. For gcc, you can use
-    `__attribute__((packed))`. MSVC offers `#pragma pack()` and
-    `__declspec(align())`.
-
-  - Use [braced-initialization](#Casting) as needed to create 64-bit
-    constants. For example:
-    
-        int64_t my_value{0x123456789};
-        uint64_t my_mask{3ULL << 48};
-
-</div>
-
 ### Preprocessor Macros
 
 <div class="summary">
@@ -3035,6 +2862,8 @@ use macros, follow it whenever possible:
   - Try not to use macros that expand to unbalanced C++ constructs, or
     at least document that behavior well.
   - Prefer not using `##` to generate function/class/variable names.
+  - Remember that macros don't know anything about C++ namespaces, do not
+	define macros that depend on being expanded in a predetermined namespace.
 
 Exporting macros from headers (i.e. defining them in a header without
 `#undef`ing them before the end of the header) is extremely strongly
@@ -3060,12 +2889,10 @@ Use `0` for integers and `0.0` for reals.
 For pointers (address values), use `nullptr`, as this provides
 type-safety.
 
-For C++03 projects, prefer `NULL` to `0`. While the values are
-equivalent, `NULL` looks more like a pointer to the reader, and some C++
-compilers provide special definitions of `NULL` which enable them to
-give useful warnings.
+For C-compatible code, prefer `NULL` to `0`. While the values are
+equivalent, `NULL` looks more like a pointer to the reader.
 
-Use `'\0'` for the null character. Using the correct type makes the code
+Use `'\0'` for the nul character. Using the correct type makes the code
 more readable.
 
 </div>
@@ -3522,7 +3349,7 @@ better binders.
 
 Some Boost libraries encourage coding practices which can hamper
 readability, such as metaprogramming and other advanced template
-techniques, and an excessively "functional" style of programming.
+techniques.
 
 </div>
 
@@ -3534,51 +3361,53 @@ In order to maintain a high level of readability for all contributors
 who might read and maintain code, we only allow an approved subset of
 Boost features. Currently, the following libraries are permitted:
 
-  - [Call Traits](https://www.boost.org/libs/utility/call_traits.htm)
-    from `boost/call_traits.hpp`
-  - [Compressed
-    Pair](https://www.boost.org/libs/utility/compressed_pair.htm) from
-    `boost/compressed_pair.hpp`
-  - [The Boost Graph Library (BGL)](https://www.boost.org/libs/graph/)
-    from `boost/graph`, except serialization (`adj_list_serialize.hpp`)
-    and parallel/distributed algorithms and data structures
-    (`boost/graph/parallel/*` and `boost/graph/distributed/*`).
-  - [Property Map](https://www.boost.org/libs/property_map/) from
-    `boost/property_map`, except parallel/distributed property maps
-    (`boost/property_map/parallel/*`).
-  - [Iterator](https://www.boost.org/libs/iterator/) from
-    `boost/iterator`
-  - The part of [Polygon](https://www.boost.org/libs/polygon/) that
-    deals with Voronoi diagram construction and doesn't depend on the
-    rest of Polygon: `boost/polygon/voronoi_builder.hpp`,
-    `boost/polygon/voronoi_diagram.hpp`, and
-    `boost/polygon/voronoi_geometry_type.hpp`
-  - [Bimap](https://www.boost.org/libs/bimap/) from `boost/bimap`
-  - [Statistical Distributions and
-    Functions](https://www.boost.org/libs/math/doc/html/dist.html) from
-    `boost/math/distributions`
-  - [Special
-    Functions](https://www.boost.org/libs/math/doc/html/special.html)
-    from `boost/math/special_functions`
-  - [Multi-index](https://www.boost.org/libs/multi_index/) from
-    `boost/multi_index`
-  - [Heap](https://www.boost.org/libs/heap/) from `boost/heap`
-  - The flat containers from
-    [Container](https://www.boost.org/libs/container/):
-    `boost/container/flat_map`, and `boost/container/flat_set`
-  - [Intrusive](https://www.boost.org/libs/intrusive/) from
-    `boost/intrusive`.
-  - [The `boost/sort` library](https://www.boost.org/libs/sort/).
-  - [Preprocessor](https://www.boost.org/libs/preprocessor/) from
-    `boost/preprocessor`.
+  - None at this time
+
+  <!-- - [Call Traits](https://www.boost.org/libs/utility/call_traits.htm) -->
+  <!--   from `boost/call_traits.hpp` -->
+  <!-- - [Compressed -->
+  <!--   Pair](https://www.boost.org/libs/utility/compressed_pair.htm) from -->
+  <!--   `boost/compressed_pair.hpp` -->
+  <!-- - [The Boost Graph Library (BGL)](https://www.boost.org/libs/graph/) -->
+  <!--   from `boost/graph`, except serialization (`adj_list_serialize.hpp`) -->
+  <!--   and parallel/distributed algorithms and data structures -->
+  <!--   (`boost/graph/parallel/*` and `boost/graph/distributed/*`). -->
+  <!-- - [Property Map](https://www.boost.org/libs/property_map/) from -->
+  <!--   `boost/property_map`, except parallel/distributed property maps -->
+  <!--   (`boost/property_map/parallel/*`). -->
+  <!-- - [Iterator](https://www.boost.org/libs/iterator/) from -->
+  <!--   `boost/iterator` -->
+  <!-- - The part of [Polygon](https://www.boost.org/libs/polygon/) that -->
+  <!--   deals with Voronoi diagram construction and doesn't depend on the -->
+  <!--   rest of Polygon: `boost/polygon/voronoi_builder.hpp`, -->
+  <!--   `boost/polygon/voronoi_diagram.hpp`, and -->
+  <!--   `boost/polygon/voronoi_geometry_type.hpp` -->
+  <!-- - [Bimap](https://www.boost.org/libs/bimap/) from `boost/bimap` -->
+  <!-- - [Statistical Distributions and -->
+  <!--   Functions](https://www.boost.org/libs/math/doc/html/dist.html) from -->
+  <!--   `boost/math/distributions` -->
+  <!-- - [Special -->
+  <!--   Functions](https://www.boost.org/libs/math/doc/html/special.html) -->
+  <!--   from `boost/math/special_functions` -->
+  <!-- - [Multi-index](https://www.boost.org/libs/multi_index/) from -->
+  <!--   `boost/multi_index` -->
+  <!-- - [Heap](https://www.boost.org/libs/heap/) from `boost/heap` -->
+  <!-- - The flat containers from -->
+  <!--   [Container](https://www.boost.org/libs/container/): -->
+  <!--   `boost/container/flat_map`, and `boost/container/flat_set` -->
+  <!-- - [Intrusive](https://www.boost.org/libs/intrusive/) from -->
+  <!--   `boost/intrusive`. -->
+  <!-- - [The `boost/sort` library](https://www.boost.org/libs/sort/). -->
+  <!-- - [Preprocessor](https://www.boost.org/libs/preprocessor/) from -->
+  <!--   `boost/preprocessor`. -->
 
 We are actively considering adding other Boost features to the list, so
 this list may be expanded in the future.
 
 </div>
 
-The following libraries are permitted, but their use is discouraged
-because they've been superseded by standard libraries in C++11:
+The following libraries are not permitted, because they've been superseded by
+standard libraries in C++11:
 
   - [Array](https://www.boost.org/libs/array/) from `boost/array.hpp`:
     use [`std::array`](http://en.cppreference.com/w/cpp/container/array)
@@ -3669,10 +3498,6 @@ Consult with the type's owners to see if there is an existing hasher
 that you can use; otherwise work with them to provide one, or roll your
 own.
 
-We are planning to provide a hash function that can work with any type,
-using a new customization mechanism that doesn't have the drawbacks of
-`std::hash`.
-
 </div>
 
 </div>
@@ -3682,8 +3507,7 @@ using a new customization mechanism that doesn't have the drawbacks of
 <div class="summary">
 
 Use libraries and language extensions from C++11 when appropriate.
-Consider portability to other environments before using C++11 features
-in your project.
+Provided they are not deprecated or removed in later C++ standards.
 
 </div>
 
@@ -3708,20 +3532,7 @@ and safety improvements.
 
 <div class="cons">
 
-The C++11 standard is substantially more complex than its predecessor
-(1,300 pages versus 800 pages), and is unfamiliar to many developers.
-The long-term effects of some features on code readability and
-maintenance are unknown. We cannot predict when its various features
-will be implemented uniformly by tools that may be of interest,
-particularly in the case of projects that are forced to use older
-versions of tools.
-
-As with [Boost](#Boost), some C++11 extensions encourage coding
-practices that hamper readability—for example by removing checked
-redundancy (such as type names) that may be helpful to readers, or by
-encouraging template metaprogramming. Other extensions duplicate
-functionality available through existing mechanisms, which may lead to
-confusion and conversion costs.
+Some C++11 features are deprecated in C++14, C++17 and future language versions.
 
 </div>
 
@@ -3822,7 +3633,7 @@ more consistent syntax with the rest of C++ and works with templates.
 Like other declarations, aliases declared in a header file are part of
 that header's public API unless they're in a function definition, in the
 private portion of a class, or in an explicitly-marked internal
-namespace. Aliases in such areas or in .cc files are implementation
+namespace. Aliases in such areas or in .cpp files are implementation
 details (because client code can't refer to them), and are not
 restricted by this rule.
 
@@ -3901,9 +3712,9 @@ typedef unordered_set<DataPoint, hash<DataPoint>, DataPointComparator> TimeSerie
 
 However, local convenience aliases are fine in function definitions,
 private sections of classes, explicitly marked internal namespaces, and
-in .cc files:
+in .cpp files:
 
-    // In a .cc file
+    // In a .cpp file
     using foo::Bar;
 
 </div>
@@ -3978,9 +3789,8 @@ rules for [variable names](#Variable_Names).
 
 <div class="summary">
 
-Filenames should be all lowercase and can include underscores (`_`) or
-dashes (`-`). Follow the convention that your project uses. If there is
-no consistent local pattern to follow, prefer "\_".
+Filenames should be all lowercase and can include dashes (`-`) or underscores (`_`).
+Follow the convention that your project uses.
 
 </div>
 
@@ -3988,14 +3798,13 @@ no consistent local pattern to follow, prefer "\_".
 
 Examples of acceptable file names:
 
-  - `my_useful_class.cc`
-  - `my-useful-class.cc`
-  - `myusefulclass.cc`
-  - `myusefulclass_test.cc // _unittest and _regtest are deprecated.`
+  - `my-useful-class.cp`
+  - `myusefulclass.cpp`
+  - `myusefulclass_test.cpp`
 
-C++ files should end in `.cc` and header files should end in `.h`. Files
+C++ files should end in `.cpp` and header files should end in `.h` or `.hpp`. Files
 that rely on being textually included at specific points should end in
-`.inc` (see also the section on [self-contained
+`.inc` or `.def` (see also the section on [self-contained
 headers](#Self_contained_Headers)).
 
 Do not use filenames that already exist in `/usr/include`, such as
@@ -4003,8 +3812,10 @@ Do not use filenames that already exist in `/usr/include`, such as
 
 In general, make your filenames very specific. For example, use
 `http_server_logs.h` rather than `logs.h`. A very common case is to have
-a pair of files called, e.g., `foo_bar.h` and `foo_bar.cc`, defining a
+a pair of files called, e.g., `foo-bar.hpp` and `foo-bar.cpp`, defining a
 class called `FooBar`.
+
+Prefer `.hpp` for new headers that are valid C++ but not C.
 
 </div>
 
@@ -4099,15 +3910,15 @@ to use a struct versus a class.
 
 <div class="summary">
 
-Variables declared constexpr or const, and whose value is fixed for the
-duration of the program, are named with a leading "k" followed by mixed
+New variables declared `constexpr` or `const`, and whose value is fixed for the
+duration of the program, are named with a leading upper case letter followed by mixed
 case. Underscores can be used as separators in the rare cases where
 capitalization cannot be used for separation. For example:
 
 </div>
 
-    const int kDaysInAWeek = 7;
-    const int kAndroid8_0_0 = 24;  // Android 8.0.0
+    const int DaysInAWeek = 7;
+    const int Android8_0_0 = 24;  // Android 8.0.0
 
 <div class="stylebody">
 
@@ -4124,19 +3935,18 @@ the usual variable naming rules apply.
 
 <div class="summary">
 
-Regular functions have mixed case; accessors and mutators may be named
+Regular functions are lowercase with underscores; accessors and mutators may be named
 like variables.
 
 </div>
 
 <div class="stylebody">
 
-Ordinarily, functions should start with a capital letter and have a
-capital letter for each new word.
+Ordinarily, functions should be named in lower case with underscores between words.
 
-    AddTableEntry()
-    DeleteUrl()
-    OpenFileOrDie()
+    add_table_entry ()
+    delete_url ()
+    open_file_or_die ()
 
 (The same naming rule applies to class- and namespace-scope constants
 that are exposed as part of an API and that are intended to look like
@@ -4163,7 +3973,7 @@ well-known top-level namespaces.
 <div class="stylebody">
 
 The name of a top-level namespace should usually be the name of the
-project or team whose code is contained in that namespace. The code in
+project whose code is contained in that namespace. The code in
 that namespace should usually be in a directory whose basename matches
 the namespace name (or in subdirectories thereof).
 
@@ -4180,10 +3990,10 @@ because of name lookup rules. In particular, do not create any nested
 `websearch::index_util`) over collision-prone names like
 `websearch::util`.
 
-For `internal` namespaces, be wary of other code being added to the same
-`internal` namespace causing a collision (internal helpers within a team
-tend to be related and may lead to collisions). In such a situation,
-using the filename to make a unique internal name is helpful
+For `internal` or `details` namespaces, be wary of other code being added to
+the same `internal` namespace causing a collision (internal helpers within a
+team tend to be related and may lead to collisions). In such a situation, using
+the filename to make a unique internal name is helpful
 (`websearch::index::frobber_internal` for use in `frobber.h`)
 
 </div>
@@ -4194,7 +4004,7 @@ using the filename to make a unique internal name is helpful
 
 Enumerators (for both scoped and unscoped enums) should be named
 *either* like [constants](#Constant_Names) or like
-[macros](#Macro_Names): either `kEnumName` or `ENUM_NAME`.
+[macros](#Macro_Names): either `enumName` or `ENUM_NAME`.
 
 </div>
 
@@ -4206,9 +4016,9 @@ them like [macros](#Macro_Names). The enumeration name, `UrlTableErrors`
 (and `AlternateUrlTableErrors`), is a type, and therefore mixed case.
 
     enum UrlTableErrors {
-      kOK = 0,
-      kErrorOutOfMemory,
-      kErrorMalformedInput,
+      OK = 0,
+      ErrorOutOfMemory,
+      ErrorMalformedInput,
     };
     enum AlternateUrlTableErrors {
       OK = 0,
@@ -4216,13 +4026,9 @@ them like [macros](#Macro_Names). The enumeration name, `UrlTableErrors`
       MALFORMED_INPUT = 2,
     };
 
-Until January 2009, the style was to name enum values like
-[macros](#Macro_Names). This caused problems with name collisions
-between enum values and macros. Hence, the change to prefer
-constant-style naming was put in place. New code should prefer
-constant-style naming if possible. However, there is no reason to change
-old code to use constant-style names, unless the old names are actually
-causing a compile-time problem.
+New code should prefer constant-style naming if possible. However, there is no
+reason to change old code to use constant-style names, unless the old names are
+actually causing a compile-time problem.
 
 </div>
 
@@ -4294,47 +4100,8 @@ Use either the `//` or `/* */` syntax, as long as you are consistent.
 
 <div class="stylebody">
 
-You can use either the `//` or the `/* */` syntax; however, `//` is
-*much* more common. Be consistent with how you comment and what style
-you use where.
-
-</div>
-
-### File Comments
-
-<div class="summary">
-
-Start each file with license boilerplate.
-
-File comments describe the contents of a file. If a file declares,
-implements, or tests exactly one abstraction that is documented by a
-comment at the point of declaration, file comments are not required. All
-other files must have file comments.
-
-</div>
-
-<div class="stylebody">
-
-#### Legal Notice and Author Line
-
-Every file should contain license boilerplate. Choose the appropriate
-boilerplate for the license used by the project (for example, Apache
-2.0, BSD, LGPL, GPL).
-
-If you make significant changes to a file with an author line, consider
-deleting the author line. New files should usually not contain copyright
-notice or author line.
-
-#### File Contents
-
-If a `.h` declares multiple abstractions, the file-level comment should
-broadly describe the contents of the file, and how the abstractions are
-related. A 1 or 2 sentence file-level comment may be sufficient. The
-detailed documentation about individual abstractions belongs with those
-abstractions, not at the file level.
-
-Do not duplicate comments in both the `.h` and the `.cc`. Duplicated
-comments diverge.
+You can use either the `//` or the `/* */` syntax.  Be consistent with how you
+comment and what style you use where.
 
 </div>
 
@@ -4370,7 +4137,7 @@ document the rules and invariants surrounding multithreaded use.
 The class comment is often a good place for a small example code snippet
 demonstrating a simple and focused usage of the class.
 
-When sufficiently separated (e.g. `.h` and `.cc` files), comments
+When sufficiently separated (e.g. `.h` and `.cpp` files), comments
 describing the use of the class should go together with its interface
 definition; comments about the class operation and implementation should
 accompany the implementation of the class's methods.
@@ -4381,87 +4148,9 @@ accompany the implementation of the class's methods.
 
 <div class="summary">
 
-Declaration comments describe use of the function (when it is
-non-obvious); comments at the definition of a function describe
-operation.
-
-</div>
-
-<div class="stylebody">
-
-#### Function Declarations
-
-Almost every function declaration should have comments immediately
-preceding it that describe what the function does and how to use it.
-These comments may be omitted only if the function is simple and obvious
-(e.g. simple accessors for obvious properties of the class). These
-comments should be descriptive ("Opens the file") rather than imperative
-("Open the file"); the comment describes the function, it does not tell
-the function what to do. In general, these comments do not describe how
-the function performs its task. Instead, that should be left to comments
-in the function definition.
-
-Types of things to mention in comments at the function declaration:
-
-  - What the inputs and outputs are.
-  - For class member functions: whether the object remembers reference
-    arguments beyond the duration of the method call, and whether it
-    will free them or not.
-  - If the function allocates memory that the caller must free.
-  - Whether any of the arguments can be a null pointer.
-  - If there are any performance implications of how a function is used.
-  - If the function is re-entrant. What are its synchronization
-    assumptions?
-
-Here is an example:
-
-    // Returns an iterator for this table.  It is the client's
-    // responsibility to delete the iterator when it is done with it,
-    // and it must not use the iterator once the GargantuanTable object
-    // on which the iterator was created has been deleted.
-    //
-    // The iterator is initially positioned at the beginning of the table.
-    //
-    // This method is equivalent to:
-    //    Iterator* iter = table->NewIterator();
-    //    iter->Seek("");
-    //    return iter;
-    // If you are going to immediately seek to another place in the
-    // returned iterator, it will be faster to use NewIterator()
-    // and avoid the extra seek.
-    Iterator* GetIterator() const;
-
-However, do not be unnecessarily verbose or state the completely
-obvious.
-
-When documenting function overrides, focus on the specifics of the
-override itself, rather than repeating the comment from the overridden
-function. In many of these cases, the override needs no additional
-documentation and thus no comment is required.
-
-When commenting constructors and destructors, remember that the person
-reading your code knows what constructors and destructors are for, so
-comments that just say something like "destroys this object" are not
-useful. Document what constructors do with their arguments (for example,
-if they take ownership of pointers), and what cleanup the destructor
-does. If this is trivial, just skip the comment. It is quite common for
-destructors not to have a header comment.
-
-#### Function Definitions
-
-If there is anything tricky about how a function does its job, the
-function definition should have an explanatory comment. For example, in
-the definition comment you might describe any coding tricks you use,
-give an overview of the steps you go through, or explain why you chose
-to implement the function in the way you did rather than using a viable
-alternative. For instance, you might mention why it must acquire a lock
-for the first half of the function but why it is not needed for the
-second half.
-
-Note you should *not* just repeat the comments given with the function
-declaration, in the `.h` file or wherever. It's okay to recapitulate
-briefly what the function does, but the focus of the comments should be
-on how it does it.
+Mono style is to put function desription comments with the definition, and
+function operation comments inside the definition.  This also applies to member
+functions.
 
 </div>
 
@@ -4501,7 +4190,7 @@ what they are used for, and (if unclear) why it needs to be global. For
 example:
 
     // The total number of tests cases that we run through in this regression test.
-    const int kNumTestCases = 6;
+    const int NumTestCases = 6;
 
 </div>
 
@@ -4514,214 +4203,36 @@ interesting, or important parts of your code.
 
 </div>
 
-<div class="stylebody">
-
-#### Explanatory Comments
-
-Tricky or complicated code blocks should have comments before them.
-Example:
-
-    // Divides result by two, taking into account that x
-    // contains the carry from the add.
-    for (int i = 0; i < result->size(); i++) {
-      x = (x << 8) + (*result)[i];
-      (*result)[i] = x >> 1;
-      x &= 1;
-    }
-
-#### Line Comments
-
-Also, lines that are non-obvious should get a comment at the end of the
-line. These end-of-line comments should be separated from the code by 2
-spaces. Example:
-
-    // If we have enough memory, mmap the data portion too.
-    mmap_budget = max<int64>(0, mmap_budget - index_->length());
-    if (mmap_budget >= data_size_ && !MmapData(mmap_chunk_bytes, mlock))
-      return;  // Error already logged.
-
-Note that there are both comments that describe what the code is doing,
-and comments that mention that an error has already been logged when the
-function returns.
-
-If you have several comments on subsequent lines, it can often be more
-readable to line them
-    up:
-
-    DoSomething();                  // Comment here so the comments line up.
-    DoSomethingElseThatIsLonger();  // Two spaces between the code and the comment.
-    { // One space before comment when opening a new scope is allowed,
-      // thus the comment lines up with the following comments and code.
-      DoSomethingElse();  // Two spaces before line comments normally.
-    }
-    std::vector<string> list{
-                        // Comments in braced lists describe the next element...
-                        "First item",
-                        // .. and should be aligned appropriately.
-                        "Second item"};
-    DoSomething(); /* For trailing block comments, one space is fine. */
-
-#### Function Argument Comments
-
-When the meaning of a function argument is nonobvious, consider one of
-the following remedies:
-
-  - If the argument is a literal constant, and the same constant is used
-    in multiple function calls in a way that tacitly assumes they're the
-    same, you should use a named constant to make that constraint
-    explicit, and to guarantee that it holds.
-  - Consider changing the function signature to replace a `bool`
-    argument with an `enum` argument. This will make the argument values
-    self-describing.
-  - For functions that have several configuration options, consider
-    defining a single class or struct to hold all the options , and pass
-    an instance of that. This approach has several advantages. Options
-    are referenced by name at the call site, which clarifies their
-    meaning. It also reduces function argument count, which makes
-    function calls easier to read and write. As an added benefit, you
-    don't have to change call sites when you add another option.
-  - Replace large or complex nested expressions with named variables.
-  - As a last resort, use comments to clarify argument meanings at the
-    call site.
-
-Consider the following example:
-
-``` badcode
-// What are these arguments?
-const DecimalNumber product = CalculateProduct(values, 7, false, nullptr);
-```
-
-versus:
-
-    ProductOptions options;
-    options.set_precision_decimals(7);
-    options.set_use_cache(ProductOptions::kDontUseCache);
-    const DecimalNumber product =
-        CalculateProduct(values, options, /*completion_callback=*/nullptr);
-
-#### Don'ts
-
-Do not state the obvious. In particular, don't literally describe what
-code does, unless the behavior is nonobvious to a reader who understands
-C++ well. Instead, provide higher level comments that describe *why* the
-code does what it does, or make the code self describing.
-
-Compare this:
-
-``` badcode
-// Find the element in the vector.  <-- Bad: obvious!
-auto iter = std::find(v.begin(), v.end(), element);
-if (iter != v.end()) {
-  Process(element);
-}
-```
-
-To this:
-
-    // Process "element" unless it was already processed.
-    auto iter = std::find(v.begin(), v.end(), element);
-    if (iter != v.end()) {
-      Process(element);
-    }
-
-Self-describing code doesn't need a comment. The comment from the
-example above would be obvious:
-
-    if (!IsAlreadyProcessed(element)) {
-      Process(element);
-    }
-
-</div>
-
-### Punctuation, Spelling and Grammar
+### Template specialization comments
 
 <div class="summary">
 
-Pay attention to punctuation, spelling, and grammar; it is easier to
-read well-written comments than badly written ones.
+Template comments describing template specializations should be part of the
+comment accompanying the *template definition*.
 
 </div>
 
 <div class="stylebody">
 
-Comments should be as readable as narrative text, with proper
-capitalization and punctuation. In many cases, complete sentences are
-more readable than sentence fragments. Shorter comments, such as
-comments at the end of a line of code, can sometimes be less formal, but
-you should be consistent with your style.
+In general template specializations should behave in a way that is similar to
+the generic template case.  If particular instances require attention, add a
+comment to the template definition alerting the user of the fact.  In
+particular, if client code is expected to specialize the template for their own
+types, the appropriate behavior should be described with the definition.
+(Consider for example `std::swap<>`).
 
-Although it can be frustrating to have a code reviewer point out that
-you are using a comma when you should be using a semicolon, it is very
-important that source code maintain a high level of clarity and
-readability. Proper punctuation, spelling, and grammar help with that
-goal.
+    /// This class wraps a pair of items of the same type.
+	/// A specialization is provided for a pair of 16-bit integers that stores them together in a single 32-bit word.
+	template <typename T>
+	class SpecialPair {
+	    ...
+	}
+	
+	template<>
+	class SpecialPair<int16_t> {
+	    ...
+	}
 
-</div>
-
-### TODO Comments
-
-<div class="summary">
-
-Use `TODO` comments for code that is temporary, a short-term solution,
-or good-enough but not perfect.
-
-</div>
-
-<div class="stylebody">
-
-`TODO`s should include the string `TODO` in all caps, followed by the
-name, e-mail address, bug ID, or other identifier of the person or issue
-with the best context about the problem referenced by the `TODO`. The
-main purpose is to have a consistent `TODO` that can be searched to find
-out how to get more details upon request. A `TODO` is not a commitment
-that the person referenced will fix the problem. Thus when you create a
-`TODO` with a name, it is almost always your name that is given.
-
-<div>
-
-    // TODO(kl@gmail.com): Use a "*" here for concatenation operator.
-    // TODO(Zeke) change this to use relations.
-    // TODO(bug 12345): remove the "Last visitors" feature
-
-</div>
-
-If your `TODO` is of the form "At a future date do something" make sure
-that you either include a very specific date ("Fix by November 2005") or
-a very specific event ("Remove this code when all clients can handle XML
-responses.").
-
-</div>
-
-### Deprecation Comments
-
-<div class="summary">
-
-Mark deprecated interface points with `DEPRECATED` comments.
-
-</div>
-
-<div class="stylebody">
-
-You can mark an interface as deprecated by writing a comment containing
-the word `DEPRECATED` in all caps. The comment goes either before the
-declaration of the interface or on the same line as the declaration.
-
-After the word `DEPRECATED`, write your name, e-mail address, or other
-identifier in parentheses.
-
-A deprecation comment must include simple, clear directions for people
-to fix their callsites. In C++, you can implement a deprecated function
-as an inline function that calls the new interface point.
-
-Marking an interface point `DEPRECATED` will not magically cause any
-callsites to change. If you want people to actually stop using the
-deprecated facility, you will have to fix the callsites yourself or
-recruit a crew to help you.
-
-New code should not contain calls to deprecated interface points. Use
-the new interface point instead. If you cannot understand the
-directions, find the person who created the deprecation and ask them for
-help using the new interface point.
 
 </div>
 
@@ -4733,62 +4244,6 @@ agree with every aspect of the formatting rules, and some of the rules
 may take some getting used to, but it is important that all project
 contributors follow the style rules so that they can all read and
 understand everyone's code easily.
-
-To help you format code correctly, we've created a [settings file for
-emacs](https://raw.githubusercontent.com/google/styleguide/gh-pages/google-c-style.el).
-
-### Line Length
-
-<div class="summary">
-
-Each line of text in your code should be at most 80 characters long.
-
-</div>
-
-<div class="stylebody">
-
-We recognize that this rule is controversial, but so much existing code
-already adheres to it, and we feel that consistency is important.
-
-<div class="pros">
-
-Those who favor this rule argue that it is rude to force them to resize
-their windows and there is no need for anything longer. Some folks are
-used to having several code windows side-by-side, and thus don't have
-room to widen their windows in any case. People set up their work
-environment assuming a particular maximum window width, and 80 columns
-has been the traditional standard. Why change it?
-
-</div>
-
-<div class="cons">
-
-Proponents of change argue that a wider line can make code more
-readable. The 80-column limit is an hidebound throwback to 1960s
-mainframes; modern equipment has wide screens that can easily show
-longer lines.
-
-</div>
-
-<div class="decision">
-
-80 characters is the maximum.
-
-A line may exceed 80 characters if it is
-
-  - a comment line which is not feasible to split without harming
-    readability, ease of cut and paste or auto-linking -- e.g. if a line
-    contains an example command or a literal URL longer than 80
-    characters.
-  - a raw-string literal with content that exceeds 80 characters. Except
-    for test code, such literals should appear near the top of a file.
-  - an include statement.
-  - a [header guard](#The__define_Guard)
-  - a using-declaration
-
-</div>
-
-</div>
 
 ### Non-ASCII Characters
 
@@ -4828,26 +4283,11 @@ Windows API, which uses `wchar_t` extensively).
 
 </div>
 
-### Spaces vs. Tabs
-
-<div class="summary">
-
-Use only spaces, and indent 2 spaces at a time.
-
-</div>
-
-<div class="stylebody">
-
-We use spaces for indentation. Do not use tabs in your code. You should
-set your editor to emit spaces when you hit the tab key.
-
-</div>
-
 ### Function Declarations and Definitions
 
 <div class="summary">
 
-Return type on the same line as function name, parameters on the same
+Return type on a separate line as function name, parameters on the same
 line if they fit. Wrap parameter lists which do not fit on a single line
 as you would wrap arguments in a [function call](#Function_Calls).
 
@@ -4857,28 +4297,20 @@ as you would wrap arguments in a [function call](#Function_Calls).
 
 Functions look like this:
 
-    ReturnType ClassName::FunctionName(Type par_name1, Type par_name2) {
-      DoSomething();
-      ...
+    ReturnType
+	ClassName::FunctionName (Type par_name1, Type par_name2) {
+    	DoSomething();
+    	...
     }
 
 If you have too much text to fit on one
     line:
 
-    ReturnType ClassName::ReallyLongFunctionName(Type par_name1, Type par_name2,
-                                                 Type par_name3) {
-      DoSomething();
-      ...
-    }
-
-or if you cannot fit even the first parameter:
-
-    ReturnType LongClassName::ReallyReallyReallyLongFunctionName(
-        Type par_name1,  // 4 space indent
-        Type par_name2,
-        Type par_name3) {
-      DoSomething();  // 2 space indent
-      ...
+    ReturnType
+	ClassName::ReallyLongFunctionName (Type par_name1, Type par_name2,
+                                      Type par_name3) {
+    	DoSomething();
+    	...
     }
 
 Some points to note:
@@ -4886,33 +4318,29 @@ Some points to note:
   - Choose good parameter names.
   - A parameter name may be omitted only if the parameter is not used in
     the function's definition.
-  - If you cannot fit the return type and the function name on a single
-    line, break between them.
-  - If you break after the return type of a function declaration or
-    definition, do not indent.
   - The open parenthesis is always on the same line as the function
     name.
-  - There is never a space between the function name and the open
+  - There is always a space between the function name and the open
     parenthesis.
   - There is never a space between the parentheses and the parameters.
   - The open curly brace is always on the end of the last line of the
     function declaration, not the start of the next line.
   - The close curly brace is either on the last line by itself or on the
-    same line as the open curly brace.
+    same line as the open curly brace. (Rare)
   - There should be a space between the close parenthesis and the open
     curly brace.
   - All parameters should be aligned if possible.
-  - Default indentation is 2 spaces.
+  - Default indentation is 1 8-space tab.
   - Wrapped parameters have a 4 space indent.
 
 Unused parameters that are obvious from context may be omitted:
 
     class Foo {
-     public:
-      Foo(Foo&&);
-      Foo(const Foo&);
-      Foo& operator=(Foo&&);
-      Foo& operator=(const Foo&);
+    public:
+    	Foo(Foo&&);
+    	Foo(const Foo&);
+    	Foo& operator=(Foo&&);
+    	Foo& operator=(const Foo&);
     };
 
 Unused parameters that might not be obvious should comment out the
@@ -4940,7 +4368,9 @@ Attributes, and macros that expand to attributes, appear at the very
 beginning of the function declaration or definition, before the return
 type:
 
-    MUST_USE_RESULT bool IsOK();
+    MUST_USE_RESULT
+	bool
+	IsOK();
 
 </div>
 
@@ -4976,11 +4406,10 @@ Short lambdas may be written inline as function arguments.
 
 <div class="summary">
 
-Either write the call all on a single line, wrap the arguments at the
-parenthesis, or start the arguments on a new line indented by four
-spaces and continue at that 4 space indent. In the absence of other
-considerations, use the minimum number of lines, including placing
-multiple arguments on each line where appropriate.
+Template arguments that can be deduced may be omitted if they are verbose, or
+obvious.  Conversely, if they are surprising or document something unexpected
+they should be included.  The same function call may have some template
+arguments specified and the rest omitted.
 
 </div>
 
@@ -4988,64 +4417,18 @@ multiple arguments on each line where appropriate.
 
 Function calls have the following format:
 
-    bool result = DoSomething(argument1, argument2, argument3);
+    bool result = DoSomething<U1, U2> (argument1, argument2, argument3);
 
-If the arguments do not all fit on one line, they should be broken up
-onto multiple lines, with each subsequent line aligned with the first
-argument. Do not add spaces after the open paren or before the close
-paren:
+If template arguments are obvious and deduced by the compiler they may be omitted:
 
-    bool result = DoSomething(averyveryveryverylongargument1,
-                              argument2, argument3);
+    using std::swap;
+	Foo x1, x2;
+	...
+	swap (x1, x2); // not swap<Foo> (x1, x2);
 
-Arguments may optionally all be placed on subsequent lines with a four
-space indent:
+Some arguments are required, in that case they should be included:
 
-    if (...) {
-      ...
-      ...
-      if (...) {
-        bool result = DoSomething(
-            argument1, argument2,  // 4 space indent
-            argument3, argument4);
-        ...
-      }
-
-Put multiple arguments on a single line to reduce the number of lines
-necessary for calling a function unless there is a specific readability
-problem. Some find that formatting with strictly one argument on each
-line is more readable and simplifies editing of the arguments. However,
-we prioritize for the reader over the ease of editing arguments, and
-most readability problems are better addressed with the following
-techniques.
-
-If having multiple arguments in a single line decreases readability due
-to the complexity or confusing nature of the expressions that make up
-some arguments, try creating variables that capture those arguments in a
-descriptive name:
-
-    int my_heuristic = scores[x] * y + bases[x];
-    bool result = DoSomething(my_heuristic, x, y, z);
-
-Or put the confusing argument on its own line with an explanatory
-comment:
-
-    bool result = DoSomething(scores[x] * y + bases[x],  // Score heuristic.
-                              x, y, z);
-
-If there is still a case where one argument is significantly more
-readable on its own line, then put it on its own line. The decision
-should be specific to the argument which is made more readable rather
-than a general policy.
-
-Sometimes arguments form a structure that is important for readability.
-In those cases, feel free to format the arguments according to that
-structure:
-
-    // Transform the widget by a 3x3 matrix.
-    my_widget.Transform(x1, x2, x3,
-                        y1, y2, y3,
-                        z1, z2, z3);
+    auto foo_ptr = std::make_unique<Foo> (1, 2.0);
 
 </div>
 
@@ -5054,147 +4437,20 @@ structure:
 <div class="summary">
 
 Format a [braced initializer list](#Braced_Initializer_List) exactly
-like you would format a function call in its place.
+like you would format a function call in its place, but without a space.
 
 </div>
 
 <div class="stylebody">
 
 If the braced list follows a name (e.g. a type or variable name), format
-as if the `{}` were the parentheses of a function call with that name.
-If there is no name, assume a zero-length name.
+without a space.
 
     // Examples of braced init list on a single line.
     return {foo, bar};
-    functioncall({foo, bar});
+    functioncall ({foo, bar});
     std::pair<int, int> p{foo, bar};
     
-    // When you have to wrap.
-    SomeFunction(
-        {"assume a zero-length name before {"},
-        some_other_function_parameter);
-    SomeType variable{
-        some, other, values,
-        {"assume a zero-length name before {"},
-        SomeOtherType{
-            "Very long string requiring the surrounding breaks.",
-            some, other values},
-        SomeOtherType{"Slightly shorter string",
-                      some, other, values}};
-    SomeType variable{
-        "This is too long to fit all in one line"};
-    MyType m = {  // Here, you could also break before {.
-        superlongvariablename1,
-        superlongvariablename2,
-        {short, interior, list},
-        {interiorwrappinglist,
-         interiorwrappinglist2}};
-
-</div>
-
-### Conditionals
-
-<div class="summary">
-
-Prefer no spaces inside parentheses. The `if` and `else` keywords belong
-on separate lines.
-
-</div>
-
-<div class="stylebody">
-
-There are two acceptable formats for a basic conditional statement. One
-includes spaces between the parentheses and the condition, and one does
-not.
-
-The most common form is without spaces. Either is fine, but *be
-consistent*. If you are modifying a file, use the format that is already
-present. If you are writing new code, use the format that the other
-files in that directory or project use. If in doubt and you have no
-personal preference, do not add the spaces.
-
-    if (condition) {  // no spaces inside parentheses
-      ...  // 2 space indent.
-    } else if (...) {  // The else goes on the same line as the closing brace.
-      ...
-    } else {
-      ...
-    }
-
-If you prefer you may add spaces inside the parentheses:
-
-    if ( condition ) {  // spaces inside parentheses - rare
-      ...  // 2 space indent.
-    } else {  // The else goes on the same line as the closing brace.
-      ...
-    }
-
-Note that in all cases you must have a space between the `if` and the
-open parenthesis. You must also have a space between the close
-parenthesis and the curly brace, if you're using one.
-
-``` badcode
-if(condition) {   // Bad - space missing after IF.
-if (condition){   // Bad - space missing before {.
-if(condition){    // Doubly bad.
-```
-
-    if (condition) {  // Good - proper space after IF and before {.
-
-Short conditional statements may be written on one line if this enhances
-readability. You may use this only when the line is brief and the
-statement does not use the `else` clause.
-
-    if (x == kFoo) return new Foo();
-    if (x == kBar) return new Bar();
-
-This is not allowed when the if statement has an `else`:
-
-``` badcode
-// Not allowed - IF statement on one line when there is an ELSE clause
-if (x) DoThis();
-else DoThat();
-```
-
-In general, curly braces are not required for single-line statements,
-but they are allowed if you like them; conditional or loop statements
-with complex conditions or statements may be more readable with curly
-braces. Some projects require that an `if` must always have an
-accompanying brace.
-
-    if (condition)
-      DoSomething();  // 2 space indent.
-    
-    if (condition) {
-      DoSomething();  // 2 space indent.
-    }
-
-However, if one part of an `if`-`else` statement uses curly braces, the
-other part must too:
-
-``` badcode
-// Not allowed - curly on IF but not ELSE
-if (condition) {
-  foo;
-} else
-  bar;
-
-// Not allowed - curly on ELSE but not IF
-if (condition)
-  foo;
-else {
-  bar;
-}
-```
-
-    // Curly braces around both IF and ELSE required because
-    // one of the clauses used braces.
-    if (condition) {
-      foo;
-    } else {
-      bar;
-    }
-
 </div>
 
 ### Loops and Switch Statements
@@ -5202,8 +4458,7 @@ else {
 <div class="summary">
 
 Switch statements may use braces for blocks. Annotate non-trivial
-fall-through between cases. Braces are optional for single-statement
-loops. Empty loop bodies should use either empty braces or `continue`.
+fall-through between cases.
 
 </div>
 
@@ -5221,73 +4476,28 @@ case should never execute, treat this as an error. For example:
 <div>
 
     switch (var) {
-      case 0: {  // 2 space indent
-        ...      // 4 space indent
-        break;
-      }
-      case 1: {
-        ...
-        break;
-      }
-      default: {
-        assert(false);
-      }
+    case 0:
+		{
+        	...
+        	break;
+      	}
+    case 1:
+		{
+        	...
+        	break;
+    	}
+    default:
+		{
+        	assert(false);
+    	}
     }
 
 </div>
 
-Fall-through from one case label to another must be annotated using the
-`ABSL_FALLTHROUGH_INTENDED;` macro (defined in `absl/base/macros.h`).
-`ABSL_FALLTHROUGH_INTENDED;` should be placed at a point of execution
-where a fall-through to the next case label occurs. A common exception
-is consecutive case labels without intervening code, in which case no
+Fall-through from one case label to another must be annotated with a `// fallthru` comment.
+Avoid complex control flow where some but not all branches fall through.
+A common exception is consecutive case labels without intervening code, in which case no
 annotation is needed.
-
-<div>
-
-    switch (x) {
-      case 41:  // No annotation needed here.
-      case 43:
-        if (dont_be_picky) {
-          // Use this instead of or along with annotations in comments.
-          ABSL_FALLTHROUGH_INTENDED;
-        } else {
-          CloseButNoCigar();
-          break;
-        }
-      case 42:
-        DoSomethingSpecial();
-        ABSL_FALLTHROUGH_INTENDED;
-      default:
-        DoSomethingGeneric();
-        break;
-    }
-
-</div>
-
-Braces are optional for single-statement loops.
-
-    for (int i = 0; i < kSomeNumber; ++i)
-      printf("I love you\n");
-    
-    for (int i = 0; i < kSomeNumber; ++i) {
-      printf("I take it back\n");
-    }
-
-Empty loop bodies should use either an empty pair of braces or
-`continue` with no braces, rather than a single semicolon.
-
-    while (condition) {
-      // Repeat test until it returns false.
-    }
-    for (int i = 0; i < kSomeNumber; ++i) {}  // Good - one newline is also OK.
-    while (condition) continue;  // Good - continue indicates no logic.
-
-``` badcode
-while (condition);  // Bad - looks like part of do/while loop.
-```
-
-</div>
 
 ### Pointer and Reference Expressions
 
@@ -5343,61 +4553,6 @@ const string & str;  // Bad - spaces on both sides of &
 
 </div>
 
-### Boolean Expressions
-
-<div class="summary">
-
-When you have a boolean expression that is longer than the [standard
-line length](#Line_Length), be consistent in how you break up the lines.
-
-</div>
-
-<div class="stylebody">
-
-In this example, the logical AND operator is always at the end of the
-lines:
-
-    if (this_one_thing > this_other_thing &&
-        a_third_thing == a_fourth_thing &&
-        yet_another && last_one) {
-      ...
-    }
-
-Note that when the code wraps in this example, both of the `&&` logical
-AND operators are at the end of the line. This is more common in Google
-code, though wrapping all operators at the beginning of the line is also
-allowed. Feel free to insert extra parentheses judiciously because they
-can be very helpful in increasing readability when used appropriately.
-Also note that you should always use the punctuation operators, such as
-`&&` and `~`, rather than the word operators, such as `and` and `compl`.
-
-</div>
-
-### Return Values
-
-<div class="summary">
-
-Do not needlessly surround the `return` expression with parentheses.
-
-</div>
-
-<div class="stylebody">
-
-Use parentheses in `return expr;` only where you would use them in `x =
-expr;`.
-
-    return result;                  // No parentheses in the simple case.
-    // Parentheses OK to make a complex expression more readable.
-    return (some_long_condition &&
-            another_condition);
-
-``` badcode
-return (value);                // You wouldn't write var = (value);
-return(result);                // return is not a function!
-```
-
-</div>
-
 ### Variable and Array Initialization
 
 <div class="summary">
@@ -5437,49 +4592,11 @@ prevent some types of programming errors.
 
 </div>
 
-### Preprocessor Directives
-
-<div class="summary">
-
-The hash mark that starts a preprocessor directive should always be at
-the beginning of the line.
-
-</div>
-
-<div class="stylebody">
-
-Even when preprocessor directives are within the body of indented code,
-the directives should start at the beginning of the line.
-
-    // Good - directives at beginning of line
-      if (lopsided_score) {
-    #if DISASTER_PENDING      // Correct -- Starts at beginning of line
-        DropEverything();
-    # if NOTIFY               // OK but not required -- Spaces after #
-        NotifyClient();
-    # endif
-    #endif
-        BackToNormal();
-      }
-
-``` badcode
-// Bad - indented directives
-  if (lopsided_score) {
-    #if DISASTER_PENDING  // Wrong!  The "#if" should be at beginning of line
-    DropEverything();
-    #endif                // Wrong!  Do not indent "#endif"
-    BackToNormal();
-  }
-```
-
-</div>
-
 ### Class Format
 
 <div class="summary">
 
-Sections in `public`, `protected` and `private` order, each indented one
-space.
+Sections in `public`, `protected` and `private` order.
 
 </div>
 
@@ -5490,31 +4607,35 @@ The basic format for a class definition (lacking the comments, see
 needed) is:
 
     class MyClass : public OtherClass {
-     public:      // Note the 1 space indent!
-      MyClass();  // Regular 2 space indent.
-      explicit MyClass(int var);
-      ~MyClass() {}
+    public:
+    	MyClass ();
+    	explicit MyClass (int var);
+    	~MyClass () {}
     
-      void SomeFunction();
-      void SomeFunctionThatDoesNothing() {
-      }
+    	void SomeFunction ();
+    	void SomeFunctionThatDoesNothing ()
+		{
+     	}
     
-      void set_some_var(int var) { some_var_ = var; }
-      int some_var() const { return some_var_; }
+    	void set_some_var (int var)
+		{
+			some_var_ = var;
+		}
+    	int some_var () const { return some_var_; }
     
-     private:
-      bool SomeInternalFunction();
+    private:
+    	bool SomeInternalFunction ();
     
-      int some_var_;
-      int some_other_var_;
+    	int some_var_;
+    	int some_other_var_;
     };
 
 Things to note:
 
   - Any base class name should be on the same line as the subclass name,
-    subject to the 80-column limit.
+    subject to the line width
   - The `public:`, `protected:`, and `private:` keywords should be
-    indented one space.
+	outdented.
   - Except for the first instance, these keywords should be preceded by
     a blank line. This rule is optional in small classes.
   - Do not leave a blank line after these keywords.
@@ -5530,7 +4651,7 @@ Things to note:
 <div class="summary">
 
 Constructor initializer lists can be all on one line or with subsequent
-lines indented four spaces.
+lines.
 
 </div>
 
@@ -5539,29 +4660,32 @@ lines indented four spaces.
 The acceptable formats for initializer lists are:
 
     // When everything fits on one line:
-    MyClass::MyClass(int var) : some_var_(var) {
+    MyClass::MyClass (int var) : some_var_(var)
+	{
       DoSomething();
     }
     
     // If the signature and initializer list are not all on one line,
-    // you must wrap before the colon and indent 4 spaces:
-    MyClass::MyClass(int var)
-        : some_var_(var), some_other_var_(var + 1) {
-      DoSomething();
+    // you must wrap before the colon and indent:
+    MyClass::MyClass (int var)
+    	: some_var_(var), some_other_var_(var + 1)
+	{
+    	DoSomething();
     }
     
     // When the list spans multiple lines, put each member on its own line
     // and align them:
     MyClass::MyClass(int var)
-        : some_var_(var),             // 4 space indent
-          some_other_var_(var + 1) {  // lined up
-      DoSomething();
+    	: some_var_ (var),             // indented
+    	  some_other_var_ (var + 1)    // lined up
+    {
+    	DoSomething();
     }
     
     // As with any other code block, the close curly can be on the same
     // line as the open curly, if it fits.
     MyClass::MyClass(int var)
-        : some_var_(var) {}
+    	: some_var_(var) {}
 
 </div>
 
@@ -5569,40 +4693,28 @@ The acceptable formats for initializer lists are:
 
 <div class="summary">
 
-The contents of namespaces are not indented.
+The contents of namespaces are indented.
 
 </div>
 
 <div class="stylebody">
 
-[Namespaces](#Namespaces) do not add an extra level of indentation. For
+[Namespaces](#Namespaces) add an extra level of indentation. For
 example, use:
 
     namespace {
     
-    void foo() {  // Correct.  No extra indentation within namespace.
-      ...
-    }
+    	void foo() // Correct.  Extra indentation within namespace.
+		{
+    		...
+    	}
     
     }  // namespace
-
-Do not indent within a namespace:
-
-``` badcode
-namespace {
-
-  // Wrong!  Indented when it should not be.
-  void foo() {
-    ...
-  }
-
-}  // namespace
-```
 
 When declaring nested namespaces, put each namespace on its own line.
 
     namespace foo {
-    namespace bar {
+    	namespace bar {
 
 </div>
 
@@ -5618,120 +4730,14 @@ whitespace at the end of a
 
 <div class="stylebody">
 
-#### General
-
-    void f(bool b) {  // Open braces should always have a space before them.
-      ...
-    int i = 0;  // Semicolons usually have no space before them.
-    // Spaces inside braces for braced-init-list are optional.  If you use them,
-    // put them on both sides!
-    int x[] = { 0 };
-    int x[] = {0};
-    
-    // Spaces around the colon in inheritance and initializer lists.
-    class Foo : public Bar {
-     public:
-      // For inline function implementations, put spaces between the braces
-      // and the implementation itself.
-      Foo(int b) : Bar(), baz_(b) {}  // No spaces inside empty braces.
-      void Reset() { baz_ = 0; }  // Spaces separating braces from implementation.
-      ...
-
-Adding trailing whitespace can cause extra work for others editing the
-same file, when they merge, as can removing existing trailing
-whitespace. So: Don't introduce trailing whitespace. Remove it if you're
-already changing that line, or do it in a separate clean-up operation
-(preferably when no-one else is working on the
-    file).
-
-#### Loops and Conditionals
-
-    if (b) {          // Space after the keyword in conditions and loops.
-    } else {          // Spaces around else.
-    }
-    while (test) {}   // There is usually no space inside parentheses.
-    switch (i) {
-    for (int i = 0; i < 5; ++i) {
-    // Loops and conditions may have spaces inside parentheses, but this
-    // is rare.  Be consistent.
-    switch ( i ) {
-    if ( test ) {
-    for ( int i = 0; i < 5; ++i ) {
-    // For loops always have a space after the semicolon.  They may have a space
-    // before the semicolon, but this is rare.
-    for ( ; i < 5 ; ++i) {
-      ...
-    
-    // Range-based for loops always have a space before and after the colon.
-    for (auto x : counts) {
-      ...
-    }
-    switch (i) {
-      case 1:         // No space before colon in a switch case.
-        ...
-      case 2: break;  // Use a space after a colon if there's code after it.
-
-#### Operators
-
-    // Assignment operators always have spaces around them.
-    x = 0;
-    
-    // Other binary operators usually have spaces around them, but it's
-    // OK to remove spaces around factors.  Parentheses should have no
-    // internal padding.
-    v = w * x + y / z;
-    v = w*x + y/z;
-    v = w * (x + z);
-    
-    // No spaces separating unary operators and their arguments.
-    x = -5;
-    ++x;
-    if (x && !y)
-      ...
-
 #### Templates and Casts
 
-    // No spaces inside the angle brackets (< and >), before
-    // <, or between >( in a cast
+    // No spaces inside the angle brackets (< and >), before <
     std::vector<string> x;
-    y = static_cast<char*>(x);
+    y = static_cast<char*> (x);
     
     // Spaces between type and pointer are OK, but be consistent.
     std::vector<char *> x;
-
-</div>
-
-### Vertical Whitespace
-
-<div class="summary">
-
-Minimize use of vertical whitespace.
-
-</div>
-
-<div class="stylebody">
-
-This is more a principle than a rule: don't use blank lines when you
-don't have to. In particular, don't put more than one or two blank lines
-between functions, resist starting functions with a blank line, don't
-end functions with a blank line, and be sparing with your use of blank
-lines. A blank line within a block of code serves like a paragraph break
-in prose: visually separating two thoughts.
-
-The basic principle is: The more code that fits on one screen, the
-easier it is to follow and understand the control flow of the program.
-Use whitespace purposefully to provide separation in that flow.
-
-Some rules of thumb to help when blank lines may be useful:
-
-  - Blank lines at the beginning or end of a function do not help
-    readability.
-  - Blank lines inside a chain of if-else blocks may well help
-    readability.
-  - A blank line before a comment line usually helps readability — the
-    introduction of a new comment suggests the start of a new thought,
-    and the blank line makes it clear that the comment goes with the
-    following thing instead of the preceding.
 
 </div>
 
@@ -5761,70 +4767,6 @@ author or the person currently responsible for the code. Remember that
 *consistency* includes local consistency, too.
 
 </div>
-
-</div>
-
-### Windows Code
-
-<div class="summary">
-
-Windows programmers have developed their own set of coding conventions,
-mainly derived from the conventions in Windows headers and other
-Microsoft code. We want to make it easy for anyone to understand your
-code, so we have a single set of guidelines for everyone writing C++ on
-any platform.
-
-</div>
-
-<div class="stylebody">
-
-It is worth reiterating a few of the guidelines that you might forget if
-you are used to the prevalent Windows style:
-
-  - Do not use Hungarian notation (for example, naming an integer
-    `iNum`). Use the Google naming conventions, including the `.cc`
-    extension for source files.
-  - Windows defines many of its own synonyms for primitive types, such
-    as `DWORD`, `HANDLE`, etc. It is perfectly acceptable, and
-    encouraged, that you use these types when calling Windows API
-    functions. Even so, keep as close as you can to the underlying C++
-    types. For example, use `const TCHAR *` instead of `LPCTSTR`.
-  - When compiling with Microsoft Visual C++, set the compiler to
-    warning level 3 or higher, and treat all warnings as errors.
-  - Do not use `#pragma once`; instead use the standard Google include
-    guards. The path in the include guards should be relative to the top
-    of your project tree.
-  - In fact, do not use any nonstandard extensions, like `#pragma` and
-    `__declspec`, unless you absolutely must. Using
-    `__declspec(dllimport)` and `__declspec(dllexport)` is allowed;
-    however, you must use them through macros such as `DLLIMPORT` and
-    `DLLEXPORT`, so that someone can easily disable the extensions if
-    they share the code.
-
-However, there are just a few rules that we occasionally need to break
-on Windows:
-
-  - Normally we [forbid the use of multiple implementation
-    inheritance](#Multiple_Inheritance); however, it is required when
-    using COM and some ATL/WTL classes. You may use multiple
-    implementation inheritance to implement COM or ATL/WTL classes and
-    interfaces.
-  - Although you should not use exceptions in your own code, they are
-    used extensively in the ATL and some STLs, including the one that
-    comes with Visual C++. When using the ATL, you should define
-    `_ATL_NO_EXCEPTIONS` to disable exceptions. You should investigate
-    whether you can also disable exceptions in your STL, but if not, it
-    is OK to turn on exceptions in the compiler. (Note that this is only
-    to get the STL to compile. You should still not write exception
-    handling code yourself.)
-  - The usual way of working with precompiled headers is to include a
-    header file at the top of each source file, typically with a name
-    like `StdAfx.h` or `precompile.h`. To make your code easier to share
-    with other projects, avoid including this file explicitly (except in
-    `precompile.cc`), and use the `/FI` compiler option to include the
-    file automatically.
-  - Resource headers, which are usually named `resource.h` and contain
-    only macros, do not need to conform to these style guidelines.
 
 </div>
 
