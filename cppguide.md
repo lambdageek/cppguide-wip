@@ -4948,6 +4948,31 @@ causes a link-time dependency on the C++ runtime library.
 
 </div>
 
+### Do not add any member with a non-trivial destructor in any `struct`
+
+<div class="summary">
+
+Do not put members of any class that has a non-trivial destructor (even a
+`=default` destructor) in any existing `struct`.
+
+</div>
+
+<div class="stylebody">
+
+Mono is a historically C-focused codebase.  As a result, it makes use of memory
+pools that know nothing about C++ semantics.  In particular, the memory pools
+do not execute destructors in a timely manner.  (They don't execute destructors
+at all).  As a result, placing any member into any `struct` that might be
+allocated in a memory pool will lead to resources not being cleaned up.
+
+Transitively, it is only safe to add members with non-trivial destructors to
+`class`es that already have a non-trivial destructor.  If a `class` previously
+had a trivial destructor, it could have been added to a legacy `struct` which
+may have been allocated in a mempool.
+
+</div>
+
+
 ## Parting Words
 
 Use common sense and *BE CONSISTENT*.
