@@ -4799,6 +4799,153 @@ author or the person currently responsible for the code. Remember that
 
 </div>
 
+## Mono Specific guidelines
+
+### Derive all classes and structs from `mono::base`
+
+<div class="summary">
+
+Derive all classes and structs from `mono::base`
+
+</div>
+
+<div class="stylebody">
+
+The `mono::base` class provides implementations of `operator new` and of
+`operator delete` suitable for Mono.  You must derive all new classes from this
+class.
+
+Mono compiles without linking to the C++ runtime library.  As a result, we
+cannot depend on the global `::operator new` and `::operator delete` to handle
+heap allocation.
+
+Additionally, C++ provides a mechanism for programs to override the global
+operators.  But it can only be done once.  Since Mono is often used as an
+embedded .NET runtime in other projects, we:
+- cannot override the global operators, since they could be used by the embedder
+- cannot rely on the global operators having semantics that are desirable for us.
+
+As a result, all classes should derive from `mono::base` which provides our
+preferred implementations for these operators.
+
+</div>
+
+### Derive polymorphic base classes from `mono::polymorphic_base`
+
+<div class="summary">
+
+All polymorphic base classes must derive from `mono::polymorphic_base`
+
+</div>
+
+<div class="stylebody">
+
+Polymorphic base classes must have a virtual destructor.
+
+Virtual destructors are compiled to multiple symbols by GCC and Clang.  One of
+those is the D0 "deleting object destructor" which calls the global `::operator
+delete(void*)` by default.
+
+The `mono::polymorphic_base` class derives from `mono::base` and adds a trivial
+virtual destructor.
+
+It is sufficient (in fact, required) that only the top of your class hierarchy
+derives from `mono::polymorphic_base`. There is no need to make classes lower
+in the class hierarchy multiply-derive from it.
+
+</div>
+
+### Do not define pure virtual methods
+
+<div class="summary">
+
+Do not define pure virtual methods.
+
+</div>
+
+<div class="stylebody">
+
+A pure virtual method may be used to indicate that a subclass is required to
+override the method, and that instances of this class cannot be created.
+
+Some compilers, like GCC and Clang, produce a stub function body for a pure
+virtual method that, were it to be called, will call `___cxa_pure_virtual` from
+the C++ runtime library.  Since Mono may not be linked with the C++ runtime
+library, pure virtual methods must not be defined.
+
+</div>
+
+### Use `mono::new_<T>` and `mono::delete_` in templates
+
+<div class="summary">
+
+In templates use `mono::new_<T> (...)` instead of `new T (...)` and
+`mono::delete_ (expr)` instead of `delete expr`
+
+</div>
+
+<div class="stylebody">
+
+The problem with `new T` is that for builtin types it will use the global
+`::operator new` instead of `mono::base::operator new`, which leads to a
+dependency on the C++ runtime library and possibly on embedder overloads of the
+global `::operator new`.  The `mono::new_<T>` template function always uses
+mono's preferred allocator both for builtin types and user defined classes.
+
+</div>
+
+### Use `mono::make_unique<T>` and `mono::unique_ptr<T>`
+
+<div class="summary">
+
+Use `mono::make_unique<T>` instead of `std::make_unique<T>`.  Use
+`mono::unique_ptr<T>` instead of `std::unique_ptr<T>`.
+
+</div>
+
+<div class="stylebody">
+
+The implementation of `std::unique_ptr<T, class Deleter =
+std::default_delete<T>>` calls `delete` to deallocate storage.
+`mono::unique_ptr<T>` is a specialization with a custom deleter that uses the
+Mono preferred deallocation functions.
+
+Similarly, `std::make_unique<T>()` calls `new T`. Whereas
+`mono::make_unique<T>()` calls `mono::new_<T>`.
+
+</div>
+
+### Do not use the standard containers
+
+<div class="summary">
+
+Do not use containers from the standard library with the default allocator.
+
+</div>
+
+<div class="stylebody">
+
+The standard allocator calls `new T` where `T` may be a built-in type, which
+relies on the global `::operator new`.
+
+### Do not use `std::function<>`
+
+<div class="summary">
+
+Do not use the `std::function<>` polymorphic function wrapper.
+
+</div>
+
+<div class="stylebody">
+
+The polymorphic function wrapper is sometimes implemented in terms of the
+global placement new operator.  Moreover it has a virtual destructor and does
+not provide its own class-specific `operator new` and `operator delete`.
+Finally the base class is polymorphic and has pure virtual methods, which
+causes a link-time dependency on the C++ runtime library.
+
+</div>
+
 ## Parting Words
 
 Use common sense and *BE CONSISTENT*.
