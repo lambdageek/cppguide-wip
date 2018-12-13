@@ -927,8 +927,43 @@ initialization does not make an observable difference. For example:
     int p = getpid ();  // allowed, as long as no other static variable
                         // uses p in its own initialization
 
-Dynamic initialization of static local variables is allowed (and
-common).
+Dynamic initialization of static local is not allowed in Mono because it
+introduces a C++ runtime library dependency to ensure mutual exclusion among
+threads.
+
+``` badcode
+class Foo {
+public:
+	Foo ();
+	~Foo ();
+
+	...
+};
+
+mono::unique_ptr<Foo> make_foo ()
+{
+	// non-trivial body
+}
+
+int
+some_fun ()
+{
+	// the compiler adds locking to guarantee that
+	// exactly one thread will initialize x
+	static Foo *x = make_foo ().release ();
+}
+```
+
+    int
+    foo ()
+    {
+    	static Foo* x; // constant initialized to nullptr
+    	if (G_UNLIKELY (!x)) {
+   			mono::unique_ptr<Foo> tmp = make_foo ();
+    		if (mono_atomic_cas_ptr (&x, tmp.get(), nullptr) == nullptr)
+    			tmp.release (); // if we initialized x, ensure that tmp won't delete it
+    	}
+    }
 
 </div>
 
@@ -958,11 +993,6 @@ common).
   - Static variables of custom types: if you require static, constant
     data of a type that you need to define yourself, give the type a
     trivial destructor and a `constexpr` constructor.
-  - If all else fails, you can create an object dynamically and never
-    delete it by binding the pointer to a function-local static pointer
-    variable: `static const auto* const impl = new T(args...);` (If the
-    initialization is more complex, it can be moved into a function or
-    lambda expression.)
 
 </div>
 
